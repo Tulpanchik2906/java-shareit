@@ -62,10 +62,10 @@ public class UserInMemoryStorage implements UserStorage {
     public boolean delete(Long id) {
         User user = users.remove(id);
         if (user == null) {
-            log.info("Не удалось удалить пользователя с id : {}", user.getId());
+            log.info("Не удалось удалить пользователя с id : {}", id);
             return false;
         } else {
-            log.info("Удален пользователь с id : {}", user.getId());
+            log.info("Удален пользователь с id : {}", id);
             return true;
         }
     }
