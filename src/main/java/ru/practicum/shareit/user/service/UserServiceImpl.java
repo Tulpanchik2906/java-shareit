@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserStorage;
 import ru.practicum.shareit.util.exception.DuplicateEmailException;
+import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
 
@@ -15,24 +16,28 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
     private final UserStorage userStorage;
 
+    @Override
     public User get(Long id) {
         User user = userStorage.get(id);
         if (user == null) {
             log.error("Пользователь с id: {} не найден.", id);
-            throw new NullPointerException("Пользователь с id: " + id + " не найден.");
+            throw new NotFoundException("Пользователь с id: " + id + " не найден.");
         }
         return user;
     }
 
+    @Override
     public List<User> findAll() {
         return userStorage.findAll();
     }
 
+    @Override
     public User create(User user) {
         validExistEmail(user.getEmail());
         return userStorage.add(user);
     }
 
+    @Override
     public User update(Long userId, User userPatch) {
         User newUser = get(userId);
 
@@ -50,6 +55,7 @@ public class UserServiceImpl implements UserService {
         return userStorage.update(newUser);
     }
 
+    @Override
     public boolean delete(Long id) {
         User user = get(id);
         return userStorage.delete(id);

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 public class UserInMemoryStorage implements UserStorage {
     private final Map<Long, User> users = new HashMap<>();
 
-    private Long id = 0l;
+    private Long id = 0L;
 
     @Override
     public User add(User user) {
@@ -62,7 +62,7 @@ public class UserInMemoryStorage implements UserStorage {
     public boolean delete(Long id) {
         User user = users.remove(id);
         if (user == null) {
-            log.info("Не удален пользователь с id : {}", user.getId());
+            log.info("Не удалось удалить пользователя с id : {}", user.getId());
             return false;
         } else {
             log.info("Удален пользователь с id : {}", user.getId());

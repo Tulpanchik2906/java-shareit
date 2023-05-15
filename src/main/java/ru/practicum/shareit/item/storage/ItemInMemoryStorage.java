@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item.storage;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.item.model.Item;
 
@@ -10,24 +11,39 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Repository
+@Slf4j
 public class ItemInMemoryStorage implements ItemStorage {
     private Map<Long, Map<Long, Item>> items = new HashMap<>();
 
-    private Long id = 0l;
+    private Long id = 0L;
 
     @Override
     public Item add(Item item) {
         item.setId(generateNextId());
-        return save(item);
+        item = save(item);
+
+        log.info("Добавлена новая вещь с id : {}.", item.getId());
+
+        return item;
     }
 
     @Override
-    public Item get(Long id, Long userId) {
+    public Item get(Long itemId, Long userId) {
         if (items.containsKey(userId)) {
-            return items.get(userId).get(id);
+            return items.get(userId).get(itemId);
         } else {
             return null;
         }
+    }
+
+    @Override
+    public Item get(Long itemId) {
+        for (Long userId : items.keySet()) {
+            if (items.get(userId).containsKey(itemId)) {
+                return items.get(userId).get(itemId);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -41,32 +57,32 @@ public class ItemInMemoryStorage implements ItemStorage {
 
     @Override
     public Item update(Item item) {
-        // Найти старый userId
-        List<Long> userIds = (List<Long>) items.keySet();
-        Long oldUserId = -1l;
-        for (Long userId : userIds) {
-            if (items.get(userId).containsKey(item.getId())) {
-                oldUserId = userId;
-            }
-        }
+        item = save(item);
 
-        delete(item.getId(), oldUserId);
+        log.info("Обновлена вещь с id : {}.", item.getId());
 
-        return save(item);
+        return item;
     }
 
     @Override
-    public List<Item> search(Long userId, String search) {
+    public List<Item> search(String search) {
         List<Item> searchItems = new ArrayList<>();
 
-        for (Long itemId : items.get(userId).keySet()) {
-            Item item = items.get(userId).get(itemId);
-            if (item.getName().toUpperCase().indexOf(search.toUpperCase()) != -1 ||
-                    item.getDescription().toUpperCase().indexOf(search.toUpperCase()) != -1) {
-                searchItems.add(item);
-            }
+        if (search == null || search.isEmpty()) {
+            return searchItems;
         }
 
+        for (Long userId : items.keySet()) {
+            for (Long itemId : items.get(userId).keySet()) {
+                Item item = items.get(userId).get(itemId);
+
+                if ((item.getAvailable() == true) &&
+                        (item.getName().toUpperCase().indexOf(search.toUpperCase()) != -1 ||
+                                item.getDescription().toUpperCase().indexOf(search.toUpperCase()) != -1)) {
+                    searchItems.add(item);
+                }
+            }
+        }
         return searchItems;
     }
 
@@ -74,10 +90,12 @@ public class ItemInMemoryStorage implements ItemStorage {
     public boolean delete(Long id, Long userId) {
         Map<Long, Item> itemsByUser = items.get(userId);
         if (itemsByUser == null) {
+            log.info("Не удалось удалить вещь с id : {}", id);
             return false;
         } else {
             itemsByUser.remove(id);
             items.put(userId, itemsByUser);
+            log.info("Удалена вещь с id : {}", id);
             return true;
         }
     }
@@ -100,5 +118,4 @@ public class ItemInMemoryStorage implements ItemStorage {
 
         return get(item.getId(), item.getOwner().getId());
     }
-
 }
