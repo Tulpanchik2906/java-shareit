@@ -22,8 +22,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ItemController {
     private final ItemServiceImpl itemService;
-
-    private final String X_SHARER_USER_ID = "X-Sharer-User-Id";
+    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @GetMapping
     public List<ItemDto> findAllByUserId(@RequestHeader(X_SHARER_USER_ID) Long userId) {
