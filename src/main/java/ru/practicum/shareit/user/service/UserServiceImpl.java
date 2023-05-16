@@ -33,7 +33,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User create(User user) {
-        validExistEmail(user.getEmail());
+        validateExistEmail(user.getEmail());
         return userStorage.add(user);
     }
 
@@ -47,7 +47,7 @@ public class UserServiceImpl implements UserService {
 
         if (userPatch.getEmail() != null) {
             if (userPatch.getEmail().compareTo(newUser.getEmail()) != 0) {
-                validExistEmail(userPatch.getEmail());
+                validateExistEmail(userPatch.getEmail());
             }
             newUser.setEmail(userPatch.getEmail());
         }
@@ -62,7 +62,7 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    private void validExistEmail(String email) {
+    private void validateExistEmail(String email) {
         if (userStorage.containsEmail(email)) {
             log.error("Пользователь с Email: {} уже существует.", email);
             throw new DuplicateEmailException("Пользователь с Email: " + email + " уже существует.");

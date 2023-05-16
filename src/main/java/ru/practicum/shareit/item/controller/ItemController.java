@@ -23,9 +23,10 @@ import java.util.stream.Collectors;
 public class ItemController {
     private final ItemServiceImpl itemService;
 
-    @GetMapping
-    public List<ItemDto> findAllByUserId(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    private final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
+    @GetMapping
+    public List<ItemDto> findAllByUserId(@RequestHeader(X_SHARER_USER_ID) Long userId) {
         log.info("Получен запрос на получение всего списка вещей пользователя {}.",
                 userId);
 
@@ -36,8 +37,7 @@ public class ItemController {
 
     @GetMapping("/{id}")
     public ItemDto get(@PathVariable Long id,
-                       @RequestHeader("X-Sharer-User-Id") Long userId) {
-
+                       @RequestHeader(X_SHARER_USER_ID) Long userId) {
         log.info("Получен запрос от пользвателя {} на получение информации о вещи с id: {}.",
                 userId, id);
 
@@ -45,9 +45,8 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<ItemDto> search(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public List<ItemDto> search(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                 @RequestParam(required = false) String text) {
-
         log.info("Получен запрос на получение списка вещей пользователя {}" +
                 " по поиску: {}.", userId, text);
 
@@ -57,9 +56,8 @@ public class ItemController {
     }
 
     @PostMapping
-    public ItemDto add(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ItemDto add(@RequestHeader(X_SHARER_USER_ID) Long userId,
                        @Valid @RequestBody CreateItemDto item) {
-
         log.info("Получен запрос на сохранение новой вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
@@ -68,9 +66,8 @@ public class ItemController {
 
     @PatchMapping("/{id}")
     public ItemDto update(@PathVariable Long id,
-                          @RequestHeader("X-Sharer-User-Id") Long userId,
+                          @RequestHeader(X_SHARER_USER_ID) Long userId,
                           @RequestBody PatchItemDto item) {
-
         log.info("Получен запрос на обновлении вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
@@ -79,8 +76,7 @@ public class ItemController {
 
     @DeleteMapping("/{id}")
     public boolean deleteItem(@PathVariable Long id,
-                              @RequestHeader("X-Sharer-User-Id") long userId) {
-
+                              @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("Получен запрос на удалении вещи {} пользователя {} ", id, userId);
 
         return itemService.delete(userId, id);

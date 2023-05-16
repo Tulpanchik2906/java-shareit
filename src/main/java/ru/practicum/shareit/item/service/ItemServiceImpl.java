@@ -21,12 +21,11 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        validExistUser(userId);
+        validateExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
         Item item = itemStorage.get(itemId);
 
         if (item == null) {
-
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
@@ -44,14 +43,14 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item create(Long userId, Item item) {
-        validExistUser(userId);
+        validateExistUser(userId);
         item.setOwner(userStorage.get(userId));
         return itemStorage.add(item);
     }
 
     @Override
     public Item update(Long itemId, Long userId, Item item) {
-        validItemByUserAndById(itemId, userId);
+        validateItemByUserAndById(itemId, userId);
 
         Item oldItem = getInfo(itemId, userId);
 
@@ -72,30 +71,28 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public boolean delete(Long itemId, Long userId) {
-        validItemByUserAndById(itemId, userId);
-
+        validateItemByUserAndById(itemId, userId);
         return itemStorage.delete(itemId, userId);
     }
 
     @Override
     public List<Item> searchItems(Long userId, String text) {
-        validExistUser(userId);
+        validateExistUser(userId);
         return itemStorage.search(text);
     }
 
-    private void validExistUser(Long userId) {
+    private void validateExistUser(Long userId) {
         if (userStorage.get(userId) == null) {
             log.error("Пользователь с id: {} не найден.", userId);
             throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
         }
     }
 
-    private void validItemByUserAndById(Long itemId, Long userId) {
-        validExistUser(userId);
+    private void validateItemByUserAndById(Long itemId, Long userId) {
+        validateExistUser(userId);
         Item item = itemStorage.get(itemId, userId);
 
         if (item == null) {
-
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
