@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
@@ -15,15 +15,15 @@ import java.util.List;
 @Slf4j
 public class ItemServiceImpl implements ItemService {
 
-    private final ItemStorage itemStorage;
+    private final ItemRepository itemStorage;
 
-    private final UserStorage userStorage;
+    private final UserRepository userStorage;
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
         validateExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
-        Item item = itemStorage.get(itemId);
+        Item item = itemStorage.findById(itemId).get();
 
         if (item == null) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
@@ -38,14 +38,14 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> findAllByUser(Long userId) {
-        return itemStorage.findAll(userId);
+        return itemStorage.findAllByOwner(userId);
     }
 
     @Override
     public Item create(Long userId, Item item) {
         validateExistUser(userId);
-        item.setOwner(userStorage.get(userId));
-        return itemStorage.add(item);
+        item.setOwner(userStorage.findById(userId).get());
+        return itemStorage.save(item);
     }
 
     @Override
@@ -66,13 +66,13 @@ public class ItemServiceImpl implements ItemService {
             oldItem.setAvailable(item.getAvailable());
         }
 
-        return itemStorage.update(oldItem);
+        return itemStorage.save(oldItem);
     }
 
     @Override
-    public boolean delete(Long itemId, Long userId) {
+    public void delete(Long itemId, Long userId) {
         validateItemByUserAndById(itemId, userId);
-        return itemStorage.delete(itemId, userId);
+        itemStorage.deleteById(itemId);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void validateExistUser(Long userId) {
-        if (userStorage.get(userId) == null) {
+        if (!userStorage.findById(userId).isPresent()) {
             log.error("Пользователь с id: {} не найден.", userId);
             throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
         }
@@ -90,7 +90,7 @@ public class ItemServiceImpl implements ItemService {
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
         validateExistUser(userId);
-        Item item = itemStorage.get(itemId, userId);
+        Item item = itemStorage.findById(itemId).get();
 
         if (item == null) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);

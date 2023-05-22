@@ -4,26 +4,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.DuplicateEmailException;
 import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private final UserStorage userStorage;
+    private final UserRepository userStorage;
 
     @Override
     public User get(Long id) {
-        User user = userStorage.get(id);
-        if (user == null) {
+        Optional<User> user = userStorage.findById(id);
+        if (!user.isPresent()) {
             log.error("Пользователь с id: {} не найден.", id);
             throw new NotFoundException("Пользователь с id: " + id + " не найден.");
         }
-        return user;
+        return user.get();
     }
 
     @Override
@@ -34,7 +35,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User create(User user) {
         validateExistEmail(user.getEmail());
-        return userStorage.add(user);
+        return userStorage.save(user);
     }
 
     @Override
@@ -52,18 +53,17 @@ public class UserServiceImpl implements UserService {
             newUser.setEmail(userPatch.getEmail());
         }
 
-        return userStorage.update(newUser);
+        return userStorage.save(newUser);
     }
 
     @Override
-    public boolean delete(Long id) {
+    public void delete(Long id) {
         User user = get(id);
-        return userStorage.delete(id);
+        userStorage.deleteById(id);
     }
 
-
     private void validateExistEmail(String email) {
-        if (userStorage.containsEmail(email)) {
+        if (userStorage.findByEmailContainingIgnoreCase(email).size() > 0) {
             log.error("Пользователь с Email: {} уже существует.", email);
             throw new DuplicateEmailException("Пользователь с Email: " + email + " уже существует.");
         }

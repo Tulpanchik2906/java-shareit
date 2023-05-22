@@ -74,10 +74,10 @@ public class ItemController {
     }
 
     @DeleteMapping("/{id}")
-    public boolean deleteItem(@PathVariable Long id,
+    public void deleteItem(@PathVariable Long id,
                               @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("Получен запрос на удалении вещи {} пользователя {} ", id, userId);
 
-        return itemService.delete(userId, id);
+        itemService.delete(userId, id);
     }
 }

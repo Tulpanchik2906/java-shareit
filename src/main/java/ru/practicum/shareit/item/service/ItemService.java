@@ -13,7 +13,7 @@ public interface ItemService {
 
     Item update(Long itemId, Long userId, Item item);
 
-    boolean delete(Long itemId, Long userId);
+    void delete(Long itemId, Long userId);
 
     List<Item> searchItems(Long userId, String text);
 

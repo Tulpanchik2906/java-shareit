@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class ItemRequest {
     private Long id; // уникальный идентификатор запроса;
     private String description; // текст запроса, содержащий описание требуемой вещи;
-    private User requestor; // пользователь, создавший запрос;
+    private User requester; // пользователь, создавший запрос;
     private LocalDateTime created; // дата и время создания запроса.
 
 }
