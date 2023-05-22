@@ -9,6 +9,7 @@ import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -90,9 +91,9 @@ public class ItemServiceImpl implements ItemService {
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
         validateExistUser(userId);
-        Item item = itemStorage.findById(itemId).get();
+        List<Item> item = itemStorage.findByIdAndOwner(itemId, userId);
 
-        if (item == null) {
+        if (item.size() == 0) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
