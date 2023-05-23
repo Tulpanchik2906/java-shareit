@@ -79,7 +79,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<Item> searchItems(Long userId, String text) {
         validateExistUser(userId);
-        if (text == null) {
+        if (text == null || text.isEmpty()) {
             return new ArrayList<>();
         }
         return itemStorage.search(text);
