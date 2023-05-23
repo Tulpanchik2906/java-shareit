@@ -10,8 +10,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Query("select it " +
             "from Item as it " +
-            "where upper(it.name) like upper(concat('%',?1,'%')) " +
-            "or upper(it.description) like upper(concat('%',?1,'%'))")
+            "where (upper(it.name) like upper(concat('%',?1,'%')) " +
+            "or upper(it.description) like upper(concat('%',?1,'%'))) " +
+            "and (available = true)")
     public List<Item> search(String search);
 
     @Query("select it " +
