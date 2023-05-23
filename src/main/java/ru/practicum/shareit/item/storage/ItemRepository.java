@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.Query;
 import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
 
@@ -16,7 +15,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     public List<Item> search(String search);
 
     public List<Item> findAllByOwner(Long userId);
-
 
     @Query("select it " +
             "from Item as it " +

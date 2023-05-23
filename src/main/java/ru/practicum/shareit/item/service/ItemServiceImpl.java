@@ -8,8 +8,8 @@ import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -79,6 +79,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<Item> searchItems(Long userId, String text) {
         validateExistUser(userId);
+        if (text == null) {
+            return new ArrayList<>();
+        }
         return itemStorage.search(text);
     }
 
