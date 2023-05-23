@@ -39,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> findAllByUser(Long userId) {
-        return itemStorage.findAllByOwner(userId);
+        return itemStorage.findAllByOwnerId(userId);
     }
 
     @Override

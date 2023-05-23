@@ -14,7 +14,11 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             "or upper(it.description) like upper(concat('%',?1,'%'))")
     public List<Item> search(String search);
 
-    public List<Item> findAllByOwner(Long userId);
+    @Query("select it " +
+            "from Item as it " +
+            "JOIN FETCH it.owner as u " +
+            "where u.id = ?1")
+    public List<Item> findAllByOwnerId(Long userId);
 
     @Query("select it " +
             "from Item as it " +
