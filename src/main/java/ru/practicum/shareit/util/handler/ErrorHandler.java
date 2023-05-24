@@ -9,9 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import ru.practicum.shareit.util.exception.DuplicateEmailException;
-import ru.practicum.shareit.util.exception.NotFoundException;
-import ru.practicum.shareit.util.exception.ValidationException;
+import ru.practicum.shareit.util.exception.*;
 
 
 @ControllerAdvice
@@ -47,6 +45,24 @@ public class ErrorHandler {
             throws JsonProcessingException {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString(exception.getMessage()));
+    }
+
+    @ExceptionHandler(NotAvailableItemException.class)
+    public ResponseEntity<String> handleNotAvailableItemException(NotAvailableItemException exception)
+            throws JsonProcessingException {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ApproveBookingException.class)
+    public ResponseEntity<String> handleApproveBookingExceptionException(ApproveBookingException exception)
+            throws JsonProcessingException {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(objectMapper.writeValueAsString(exception.getMessage()));
     }
