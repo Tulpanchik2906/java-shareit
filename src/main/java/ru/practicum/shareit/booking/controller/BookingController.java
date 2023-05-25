@@ -5,10 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.service.BookingService;
 
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * TODO Sprint add-bookings.
@@ -49,4 +51,14 @@ public class BookingController {
                 id, userId);
         return bookingMapper.toBookingDto(bookingService.get(id, userId));
     }
+
+    @GetMapping()
+    public List<BookingDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                    @RequestParam(required = false, defaultValue = "ALL") BookingState state) {
+        log.info("Получен запрос на получение списка бронирований пользователя {} " +
+                        "с пармаетром state: {} ",
+                userId, state.name());
+        return null;
+    }
+
 }

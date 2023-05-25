@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS requests(
 	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	description VARCHAR(1200) NOT NULL,
 	user_id BIGINT,
+	create_date TIMESTAMP NOT NULL,
 		CONSTRAINT fk_requests_to_users FOREIGN KEY(user_id)
 		 	REFERENCES users(id)
 );
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS comments
 	text varchar(4048) NOT NULL,
 	item_id BIGINT ,
 	author_id BIGINT,
+	create_date TIMESTAMP NOT NULL,
 		CONSTRAINT fk_comments_to_items FOREIGN KEY(item_id)
     			 REFERENCES items(id),
     	CONSTRAINT fk_comments_to_users FOREIGN KEY(author_id)

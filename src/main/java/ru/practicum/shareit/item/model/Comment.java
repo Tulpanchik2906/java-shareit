@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -30,4 +31,7 @@ public class Comment {
     @ManyToOne
     @JoinColumn(name = "author_id", referencedColumnName = "id")
     private User author;
+
+    @Column(name = "create_date")
+    private LocalDateTime created;
 }

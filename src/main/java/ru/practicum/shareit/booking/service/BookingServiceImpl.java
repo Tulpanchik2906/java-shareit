@@ -3,6 +3,7 @@ package ru.practicum.shareit.booking.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
@@ -11,6 +12,9 @@ import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.ApproveBookingException;
 import ru.practicum.shareit.util.exception.NotAvailableItemException;
 import ru.practicum.shareit.util.exception.NotFoundException;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Service
@@ -39,6 +43,31 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return booking;
+    }
+
+    @Override
+    public List<Booking> findAllByBooker(Long userId, BookingState bookingState) {
+        validateExistUser(userId);
+        switch (bookingState) {
+            case ALL:
+                return bookingRepository.findByBookerIdOrderByStartDesc(userId);
+            case CURRENT:
+                return bookingRepository
+                        .findByBookerIdAndStartAfterAndEndBeforeOrderByStartDesc(
+                                userId, LocalDateTime.now(), LocalDateTime.now());
+            case PAST:
+                bookingRepository
+                        .findByBookerIdAndEndBeforeOrderByStartDesc(userId, LocalDateTime.now());
+            case FUTURE:
+                bookingRepository
+                        .findByBookerIdAndStartAfterOrderByStartDesc(userId, LocalDateTime.now());
+            case WAITING:
+                bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
+            case REJECTED:
+                bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
+            default:
+                return null;
+        }
     }
 
     @Override
