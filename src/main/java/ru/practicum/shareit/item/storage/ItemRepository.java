@@ -15,15 +15,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             "and (it.available = true)")
     public List<Item> search(String search);
 
-    @Query("select it " +
-            "from Item as it " +
-            "JOIN FETCH it.owner as u " +
-            "where u.id = ?1")
-    public List<Item> findAllByOwnerId(Long userId);
+    public List<Item> findByOwnerId(Long userId);
 
-    @Query("select it " +
-            "from Item as it " +
-            "JOIN FETCH it.owner as u " +
-            "where it.id = ?1 and u.id = ?2")
-    public List<Item> findByIdAndOwner(Long itemId, Long userId);
+    public List<Item> findByIdAndOwnerId(Long itemId, Long userId);
 }

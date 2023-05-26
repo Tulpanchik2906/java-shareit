@@ -46,7 +46,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> findAllByUser(Long userId) {
-        return itemStorage.findAllByOwnerId(userId);
+        return itemStorage.findByOwnerId(userId);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ItemServiceImpl implements ItemService {
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
         validateExistUser(userId);
-        List<Item> item = itemStorage.findByIdAndOwner(itemId, userId);
+        List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
