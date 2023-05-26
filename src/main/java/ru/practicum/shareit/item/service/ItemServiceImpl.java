@@ -11,6 +11,7 @@ import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.util.exception.ApproveBookingException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -95,9 +96,7 @@ public class ItemServiceImpl implements ItemService {
     public Comment addComment(Long itemId, Long userId, Comment comment) {
         validateExistUser(userId);
         List<Booking> bookings = new ArrayList<>();
-        //TODO: Сделать проверку на userId и itemId
-        /*
-             //   bookingRepository.findByBookerIdAndByItemId(userId, itemId);
+        bookingRepository.findByBookerIdAndItemId(userId, itemId);
         if (bookings.isEmpty()) {
             log.error("Пользователь с id {} не может оставлять комментарий" +
                     " к вещи с id: {}", userId, itemId);
@@ -105,7 +104,7 @@ public class ItemServiceImpl implements ItemService {
                     "Пользователь с id " + userId + " не может оставлять комментарий" +
                             " к вещи с id: " + itemId);
         }
-         */
+
         Item item = getInfo(itemId, userId);
         comment.setAuthor(userStorage.findById(userId).get());
         comment.setItem(item);

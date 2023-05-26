@@ -11,6 +11,7 @@ import ru.practicum.shareit.booking.service.BookingService;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * TODO Sprint add-bookings.
@@ -58,7 +59,19 @@ public class BookingController {
         log.info("Получен запрос на получение списка бронирований пользователя {} " +
                         "с пармаетром state: {} ",
                 userId, state.name());
-        return null;
+        return bookingService.findAllByBooker(userId, state).stream()
+                .map(x -> bookingMapper.toBookingDto(x))
+                .collect(Collectors.toList());
     }
 
+    @GetMapping("/owner")
+    public List<BookingDto> findAllByOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                    @RequestParam(required = false, defaultValue = "ALL") BookingState state) {
+        log.info("Получен запрос на получение списка бронирований владельца {} " +
+                        "с пармаетром state: {} ",
+                userId, state.name());
+        return bookingService.findAllByOwner(userId, state).stream()
+                .map(x -> bookingMapper.toBookingDto(x))
+                .collect(Collectors.toList());
+    }
 }

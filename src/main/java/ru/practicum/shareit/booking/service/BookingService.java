@@ -10,6 +10,8 @@ public interface BookingService {
 
     List<Booking> findAllByBooker(Long userId, BookingState bookingState);
 
+    List<Booking> findAllByOwner(Long userId, BookingState bookingState);
+
     Booking create(Booking booking, Long userId);
 
     Booking approve(Long bookingId, Long userId, boolean approved);

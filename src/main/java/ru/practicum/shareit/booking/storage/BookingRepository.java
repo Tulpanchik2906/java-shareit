@@ -10,13 +10,10 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     //Для проверки пользователя, что он брал в аренду вещь.
+    List<Booking> findByBookerIdAndItemId(Long userId, Long itemId);
+
     /*
-    @Query("select b " +
-            "from Booking as b " +
-            "JOIN FETCH b.booker as u " +
-            "JOIN FETCH b.item as it "+
-            "where u.id = ?1 and it.id = ?2 ")
-    List<Booking> findByBookerIdAndByItemId(Long userId, Long itemId);
+        Списки бронирований, который делал пользователь.
      */
 
     // Поиск всех бронирований пользователя (ALL)
@@ -34,5 +31,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     // Поиск всех бронирований пользователя по статусу
     List<Booking> findByBookerIdAndStatusOrderByStartDesc(Long userId, BookingStatus status);
+
+    /*
+        Списки бронирований вещей для владельцев вещей.
+     */
+
+    // ALL
+    List<Booking> findByItemOwnerIdOrderByStartDesc(Long userId);
+
+    // CURRENT
+    List<Booking> findByItemOwnerIdAndStartAfterAndEndBeforeOrderByStartDesc(
+            Long userId, LocalDateTime curStartTime, LocalDateTime curEndTime);
+
+    // PAST
+    List<Booking> findByItemOwnerIdAndEndBeforeOrderByStartDesc(Long userId, LocalDateTime currentTime);
+
+    // FUTURE
+    List<Booking> findByItemOwnerIdAndStartAfterOrderByStartDesc(Long userId, LocalDateTime currentTime);
+
+    // Status
+    List<Booking> findByItemOwnerIdAndStatusOrderByStartDesc(Long userId, BookingStatus status);
+
 
 }

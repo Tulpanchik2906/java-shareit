@@ -71,6 +71,31 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public List<Booking> findAllByOwner(Long userId, BookingState bookingState) {
+        validateExistUser(userId);
+        switch (bookingState) {
+            case ALL:
+                return bookingRepository.findByItemOwnerIdOrderByStartDesc(userId);
+            case CURRENT:
+                return bookingRepository
+                        .findByItemOwnerIdAndStartAfterAndEndBeforeOrderByStartDesc(
+                                userId, LocalDateTime.now(), LocalDateTime.now());
+            case PAST:
+                bookingRepository
+                        .findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, LocalDateTime.now());
+            case FUTURE:
+                bookingRepository
+                        .findByItemOwnerIdAndStartAfterOrderByStartDesc(userId, LocalDateTime.now());
+            case WAITING:
+                bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
+            case REJECTED:
+                bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
+            default:
+                return null;
+        }
+    }
+
+    @Override
     public Booking create(Booking booking, Long userId) {
         validateExistUser(userId);
         validateAvailable(booking.getItem().getId());
