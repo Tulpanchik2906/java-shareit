@@ -3,6 +3,7 @@ package ru.practicum.shareit.item.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.item.model.Comment;
@@ -10,12 +11,13 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
-import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ApproveBookingException;
+import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +33,9 @@ public class ItemServiceImpl implements ItemService {
     public Item getInfo(Long itemId, Long userId) {
         validateExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
-        Item item = itemStorage.findById(itemId).get();
+        Optional<Item> item = itemStorage.findById(itemId);
 
-        if (item == null) {
+        if (!item.isPresent()) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
@@ -41,7 +43,7 @@ public class ItemServiceImpl implements ItemService {
 
         }
 
-        return item;
+        return item.get();
     }
 
     @Override
@@ -130,5 +132,27 @@ public class ItemServiceImpl implements ItemService {
                     " не найдена для пользователя:" + userId + ".");
 
         }
+    }
+
+    private Item setBookingsInfo(Item item) {
+        // Поиск последнего бронирования
+        List<Booking> findLastBooking = bookingRepository
+                .findByItemIdAndStatusAndStartBeforeOrderByStartDesc(
+                        item.getId(), BookingStatus.APPROVED, LocalDateTime.now());
+
+        if (!findLastBooking.isEmpty()) {
+            item.setLastBooking(findLastBooking.get(0));
+        }
+
+        // Поиск следующего бронирования
+        List<Booking> findNextBooking = bookingRepository
+                .findByItemIdAndStatusAndStartAfterOrderByStartAsc(
+                        item.getId(), BookingStatus.APPROVED, LocalDateTime.now());
+
+        if (!findNextBooking.isEmpty()) {
+            item.setNextBooking(findNextBooking.get(0));
+        }
+        
+        return item;
     }
 }

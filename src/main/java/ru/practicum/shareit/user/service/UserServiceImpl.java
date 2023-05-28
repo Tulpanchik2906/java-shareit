@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
-import ru.practicum.shareit.util.exception.DuplicateEmailException;
 import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
@@ -34,7 +33,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User create(User user) {
-        validateExistEmail(user.getEmail());
         return userStorage.save(user);
     }
 
@@ -47,9 +45,6 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userPatch.getEmail() != null) {
-            if (userPatch.getEmail().compareTo(newUser.getEmail()) != 0) {
-                validateExistEmail(userPatch.getEmail());
-            }
             newUser.setEmail(userPatch.getEmail());
         }
 
@@ -62,10 +57,4 @@ public class UserServiceImpl implements UserService {
         userStorage.deleteById(id);
     }
 
-    private void validateExistEmail(String email) {
-        if (userStorage.findByEmailContainingIgnoreCase(email).size() > 0) {
-            log.error("Пользователь с Email: {} уже существует.", email);
-            throw new DuplicateEmailException("Пользователь с Email: " + email + " уже существует.");
-        }
-    }
 }

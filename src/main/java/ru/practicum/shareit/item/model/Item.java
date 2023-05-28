@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
@@ -36,4 +37,10 @@ public class Item {
     @JoinColumn(name = "request_id", referencedColumnName = "id")
     private ItemRequest request; // если вещь была создана по запросу другого пользователя,
     // то в этом поле будет храниться ссылка на соответствующий запрос
+
+    @Transient
+    private Booking lastBooking;
+
+    @Transient
+    private Booking nextBooking;
 }

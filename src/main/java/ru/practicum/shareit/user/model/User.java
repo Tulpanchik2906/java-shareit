@@ -1,6 +1,9 @@
 package ru.practicum.shareit.user.model;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -26,7 +29,7 @@ public class User {
     @NotNull
     private String name; // имя или логин пользователя;
 
-    @Column(name = "email")
+    @Column(name = "email", unique = true)
     @NotBlank
     @NotNull
     private String email; // адрес электронной почты (учтите, что два пользователя не могут
