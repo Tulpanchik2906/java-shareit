@@ -56,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
                 return bookingRepository.findByBookerIdOrderByStartDesc(userId);
             case CURRENT:
                 return bookingRepository
-                        .findByBookerIdAndStartAfterAndEndBeforeOrderByStartDesc(
+                        .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
                                 userId, LocalDateTime.now(), LocalDateTime.now());
             case PAST:
                 return bookingRepository
@@ -105,6 +105,13 @@ public class BookingServiceImpl implements BookingService {
         validateExistUser(userId);
         Item item = getItem(itemId);
         validateAvailable(item.getId());
+
+        if (item.getOwner().getId() == userId) {
+            log.error("Владелец не может забронировать свою же вещь: " +
+                    "userId: {}, itemId: {}", userId, itemId);
+            throw new NotFoundException("Владелец не может забронировать свою же вещь: " +
+                    "userId: " + userId + " itemId: " + itemId);
+        }
 
         booking.setItem(item);
         booking.setBooker(userRepository.getReferenceById(userId));
@@ -169,19 +176,6 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void validateFreeBooking(LocalDateTime startDate,
-                                     LocalDateTime endDate, Long itemId) {
-        // Проверка, что новое бронирование не мешает уже согласованным бронированиям
-        List<Booking> lastBookings = bookingRepository
-                .findByItemIdAndStatusAndStartBeforeOrderByStartDesc(itemId,
-                        BookingStatus.APPROVED,
-                        LocalDateTime.now());
-
-        if(!lastBookings.isEmpty()){
-           // if(startDate.)
-            //TODO: выполнить проверку
-        }
-    }
 
     private Item getItem(Long itemId) {
         Optional<Item> item = itemRepository.findById(itemId);

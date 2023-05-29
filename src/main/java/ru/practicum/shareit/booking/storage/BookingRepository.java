@@ -10,7 +10,8 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     //Для проверки пользователя, что он брал в аренду вещь.
-    List<Booking> findByBookerIdAndItemId(Long userId, Long itemId);
+    List<Booking> findByBookerIdAndItemIdAndStatusAndStartBefore(
+            Long userId, Long itemId, BookingStatus status, LocalDateTime current);
 
     /*
         Списки бронирований, который делал пользователь.
@@ -20,7 +21,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByBookerIdOrderByStartDesc(Long userId);
 
     // Поиск всех бронирований пользователя (CURRENT)
-    List<Booking> findByBookerIdAndStartAfterAndEndBeforeOrderByStartDesc(
+    List<Booking> findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
             Long userId, LocalDateTime curStartTime, LocalDateTime curEndTime);
 
     // Поиск всех бронирований пользователя (PAST)
@@ -53,10 +54,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByItemOwnerIdAndStatusOrderByStartDesc(Long userId, BookingStatus status);
 
     // Запросы для поиска последнего бронирования
-    List<Booking> findByItemIdAndStatusAndStartBeforeOrderByStartDesc(
-            Long ItemId, BookingStatus status, LocalDateTime currentTime);
+    // Запрос для последнего бронирования,которое уже закончилось
+
+    List<Booking> findByItemIdAndItemOwnerIdAndStatusAndEndBeforeOrderByEndDesc(
+            Long itemId, Long userId, BookingStatus status, LocalDateTime currentTime);
+
+    // Запрос для последнего бронирования,которое еще идет
+    List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartBeforeAndEndAfterOrderByEndDesc(
+            Long itemId, Long userId, BookingStatus status,
+            LocalDateTime currentTimeStart, LocalDateTime currentTimeEnd);
+
 
     // Запросы для следующего бронирования
-    List<Booking> findByItemIdAndStatusAndStartAfterOrderByStartAsc(
-            Long ItemId, BookingStatus status, LocalDateTime currentTime);
+    List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
+            Long itemId, Long userId, BookingStatus status, LocalDateTime currentTime);
 }

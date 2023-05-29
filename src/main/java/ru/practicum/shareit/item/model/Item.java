@@ -1,14 +1,12 @@
 package ru.practicum.shareit.item.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
+import java.util.List;
 
 /**
  * TODO Sprint add-controllers.
@@ -39,8 +37,14 @@ public class Item {
     // то в этом поле будет храниться ссылка на соответствующий запрос
 
     @Transient
+    @ToString.Exclude
     private Booking lastBooking;
 
+    @ToString.Exclude
     @Transient
     private Booking nextBooking;
+
+    @ToString.Exclude
+    @Transient
+    private List<Comment> comments;
 }

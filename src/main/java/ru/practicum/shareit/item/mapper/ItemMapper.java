@@ -8,6 +8,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.mapper.RequestMapper;
 import ru.practicum.shareit.user.mapper.UserMapper;
 
+import java.util.stream.Collectors;
+
 public class ItemMapper {
 
     public static ItemDto toItemDto(Item item) {
@@ -17,6 +19,9 @@ public class ItemMapper {
                 .description(item.getDescription())
                 .available(item.getAvailable())
                 .owner(UserMapper.toUserDto(item.getOwner()))
+                .comments(item.getComments().stream()
+                        .map(x -> CommentMapper.toCommentDto(x))
+                        .collect(Collectors.toList()))
                 .build();
 
         if (item.getRequest() != null) {
@@ -24,11 +29,11 @@ public class ItemMapper {
         }
 
         if (item.getLastBooking() != null) {
-            itemDto.setLastBooking(BookingMapper.toBookingDto(item.getLastBooking()));
+            itemDto.setLastBooking(BookingMapper.toBookingForItemDto(item.getLastBooking()));
         }
 
         if (item.getNextBooking() != null) {
-            itemDto.setLastBooking(BookingMapper.toBookingDto(item.getNextBooking()));
+            itemDto.setNextBooking(BookingMapper.toBookingForItemDto(item.getNextBooking()));
         }
 
         return itemDto;

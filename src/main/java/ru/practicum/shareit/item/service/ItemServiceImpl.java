@@ -11,13 +11,14 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
-import ru.practicum.shareit.util.exception.ApproveBookingException;
 import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.util.exception.ValidationException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +34,9 @@ public class ItemServiceImpl implements ItemService {
     public Item getInfo(Long itemId, Long userId) {
         validateExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
-        Optional<Item> item = itemStorage.findById(itemId);
+        Optional<Item> itemOpt = itemStorage.findById(itemId);
 
-        if (!item.isPresent()) {
+        if (!itemOpt.isPresent()) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
@@ -43,19 +44,21 @@ public class ItemServiceImpl implements ItemService {
 
         }
 
-        return item.get();
+        return setComments(setBookingsInfo(itemOpt.get(), userId));
     }
 
     @Override
     public List<Item> findAllByUser(Long userId) {
-        return itemStorage.findByOwnerId(userId);
+        return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
     }
 
     @Override
     public Item create(Long userId, Item item) {
         validateExistUser(userId);
         item.setOwner(userStorage.findById(userId).get());
-        return itemStorage.save(item);
+        Item res = itemStorage.save(item);
+
+        return getInfo(res.getId(), res.getOwner().getId());
     }
 
     @Override
@@ -76,7 +79,9 @@ public class ItemServiceImpl implements ItemService {
             oldItem.setAvailable(item.getAvailable());
         }
 
-        return itemStorage.save(oldItem);
+        Item res = itemStorage.save(oldItem);
+
+        return getInfo(res.getId(), res.getOwner().getId());
     }
 
     @Override
@@ -88,21 +93,25 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public List<Item> searchItems(Long userId, String text) {
         validateExistUser(userId);
+        // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
         }
-        return itemStorage.search(text);
+        return setAddParamToItemList(itemStorage.search(text), userId);
     }
 
     @Override
     public Comment addComment(Long itemId, Long userId, Comment comment) {
         validateExistUser(userId);
-        List<Booking> bookings = new ArrayList<>();
-        bookingRepository.findByBookerIdAndItemId(userId, itemId);
+
+        List<Booking> bookings = bookingRepository
+                .findByBookerIdAndItemIdAndStatusAndStartBefore(
+                        userId, itemId, BookingStatus.APPROVED,
+                        LocalDateTime.now());
         if (bookings.isEmpty()) {
             log.error("Пользователь с id {} не может оставлять комментарий" +
                     " к вещи с id: {}", userId, itemId);
-            throw new ApproveBookingException(
+            throw new ValidationException(
                     "Пользователь с id " + userId + " не может оставлять комментарий" +
                             " к вещи с id: " + itemId);
         }
@@ -134,25 +143,50 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    private Item setBookingsInfo(Item item) {
-        // Поиск последнего бронирования
+    private Item setBookingsInfo(Item item, Long userId) {
+        // Поиск последнего бронирования (уже закончилось)
+        log.info("Текущее время {}", LocalDateTime.now());
+
         List<Booking> findLastBooking = bookingRepository
-                .findByItemIdAndStatusAndStartBeforeOrderByStartDesc(
-                        item.getId(), BookingStatus.APPROVED, LocalDateTime.now());
+                .findByItemIdAndItemOwnerIdAndStatusAndEndBeforeOrderByEndDesc(
+                        item.getId(), userId, BookingStatus.APPROVED, LocalDateTime.now());
 
         if (!findLastBooking.isEmpty()) {
             item.setLastBooking(findLastBooking.get(0));
         }
 
+        // Поиск последнего бронирования (текущее)
+        List<Booking> findCurrentBooking = bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndStartBeforeAndEndAfterOrderByEndDesc(
+                        item.getId(), userId, BookingStatus.APPROVED,
+                        LocalDateTime.now(), LocalDateTime.now());
+
+        if (!findCurrentBooking.isEmpty()) {
+            item.setLastBooking(findCurrentBooking.get(0));
+        }
+
         // Поиск следующего бронирования
         List<Booking> findNextBooking = bookingRepository
-                .findByItemIdAndStatusAndStartAfterOrderByStartAsc(
-                        item.getId(), BookingStatus.APPROVED, LocalDateTime.now());
+                .findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
+                        item.getId(), userId, BookingStatus.APPROVED, LocalDateTime.now());
 
         if (!findNextBooking.isEmpty()) {
             item.setNextBooking(findNextBooking.get(0));
         }
-        
+
         return item;
     }
+
+    private Item setComments(Item item) {
+        item.setComments(commentRepository.findByItemId(item.getId()));
+        return item;
+    }
+
+    private List<Item> setAddParamToItemList(List<Item> items, Long userId) {
+        return items.stream()
+                .map(x -> setComments(setBookingsInfo(x, userId)))
+                .collect(Collectors.toList());
+    }
 }
+
+
