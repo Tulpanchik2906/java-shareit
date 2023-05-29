@@ -163,7 +163,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateAvailable(Long itemId) {
-        if (itemRepository.findById(itemId).get().getAvailable().booleanValue() == false) {
+        if (!itemRepository.findById(itemId).get().getAvailable().booleanValue()) {
             log.error("Вещь с id: {} не доступна для бронирования.", itemId);
             throw new NotAvailableItemException("Вещь с id: " + itemId + " не доступна для бронирования.");
         }
@@ -178,11 +178,6 @@ public class BookingServiceImpl implements BookingService {
 
 
     private Item getItem(Long itemId) {
-        if (itemId == null) {
-            log.error("Вещь с id: null не найден.");
-            throw new NotFoundException("Вещь с id: null  не найдена.");
-
-        }
         Optional<Item> item = itemRepository.findById(itemId);
         if (!item.isPresent()) {
             log.error("Вещь с id: {} не найден.", itemId);
