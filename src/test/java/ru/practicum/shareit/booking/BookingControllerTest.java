@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import ru.practicum.shareit.TestUtil;
@@ -21,6 +24,7 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.dto.CreateUserDto;
 import ru.practicum.shareit.user.dto.UserDto;
 
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -29,12 +33,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase
+@Transactional
 public class BookingControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private Long ownerId;
     private Long itemId1;
@@ -47,6 +55,11 @@ public class BookingControllerTest {
         ownerId = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
         itemId1 = addItem(getAllFieldsItem(), ownerId).getId();
         bookerId = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
+    }
+
+    @AfterEach
+    @Rollback
+    public void afterAll() throws Exception {
     }
 
     @Test

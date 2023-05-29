@@ -1,13 +1,16 @@
 package ru.practicum.shareit.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import ru.practicum.shareit.TestUtil;
@@ -20,12 +23,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase
+@DataJpaTest
 public class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+
+    @AfterEach
+    @Rollback
+    public void afterAll() throws Exception {
+    }
 
     @Test
     public void testCreateUserSuccess() throws Exception {
