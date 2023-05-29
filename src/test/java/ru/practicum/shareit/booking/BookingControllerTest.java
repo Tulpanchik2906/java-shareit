@@ -36,47 +36,47 @@ public class BookingControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private Long ownerId;
-    private Long itemId;
-    private Long bookerId;
+    private Long userId1;
+    private Long itemId1;
 
     private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @BeforeEach
     public void beforeEach() throws Exception {
-        ownerId = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
-        itemId = addItem(getAllFieldsItem(), ownerId).getId();
-        bookerId = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
+        userId1 = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
+        itemId1 = addItem(getAllFieldsItem(), userId1).getId();
     }
 
     @Test
     public void testCreateBookingSuccess() throws Exception {
-        Assertions.assertNotNull(createBooking(getAllFieldsBooking(itemId), bookerId));
+        Assertions.assertNotNull(createBooking(getAllFieldsBooking(itemId1), userId1));
     }
 
     @Test
     public void testApproveTrueBookingSuccess() throws Exception {
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId), bookerId);
+        Long userId2 = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
+        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), userId2);
 
-        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), ownerId, true);
+        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), userId1, true);
 
         Assertions.assertEquals(bookingDtoRes.getStatus(), BookingStatus.APPROVED);
     }
 
     @Test
     public void testApproveFalseBookingSuccess() throws Exception {
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId), bookerId);
+        Long userId2 = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
+        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), userId2);
 
-        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), ownerId, false);
+        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), userId1, false);
 
         Assertions.assertEquals(bookingDtoRes.getStatus(), BookingStatus.REJECTED);
     }
 
     @Test
     public void testGetBookingSuccess() throws Exception {
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId), bookerId);
+        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), userId1);
 
-        BookingDto bookingDtoRes = getBooking(bookingDto.getId(), ownerId);
+        BookingDto bookingDtoRes = getBooking(bookingDto.getId(), userId1);
 
         Assertions.assertNotNull(bookingDtoRes);
     }
@@ -169,7 +169,7 @@ public class BookingControllerTest {
 
     private BookingCreateDto getAllFieldsBooking(Long itemId) {
         return BookingCreateDto.builder()
-                .start(LocalDateTime.now().plusDays(1))
+                .start(LocalDateTime.now())
                 .end(LocalDateTime.now().plusDays(2))
                 .itemId(itemId)
                 .build();
