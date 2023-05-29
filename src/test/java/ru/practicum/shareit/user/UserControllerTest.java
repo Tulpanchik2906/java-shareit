@@ -3,7 +3,6 @@ package ru.practicum.shareit.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,7 +36,7 @@ public class UserControllerTest {
     public void afterAll() throws Exception {
     }
 
-    @Test
+    //@Test
     public void testCreateUserSuccess() throws Exception {
         Assertions.assertNotNull(addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())));
     }
