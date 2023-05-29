@@ -149,7 +149,7 @@ public class BookingServiceImpl implements BookingService {
 
 
     private void validateExistUser(Long userId) {
-        if (!userRepository.findById(userId).isPresent()) {
+        if (userId == null || !userRepository.findById(userId).isPresent()) {
             log.error("Пользователь с id: {} не найден.", userId);
             throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
         }
@@ -178,6 +178,11 @@ public class BookingServiceImpl implements BookingService {
 
 
     private Item getItem(Long itemId) {
+        if (itemId == null) {
+            log.error("Вещь с id: null не найден.");
+            throw new NotFoundException("Вещь с id: null  не найдена.");
+
+        }
         Optional<Item> item = itemRepository.findById(itemId);
         if (!item.isPresent()) {
             log.error("Вещь с id: {} не найден.", itemId);
