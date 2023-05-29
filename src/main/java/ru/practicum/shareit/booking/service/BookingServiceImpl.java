@@ -106,7 +106,7 @@ public class BookingServiceImpl implements BookingService {
         Item item = getItem(itemId);
         validateAvailable(item.getId());
 
-        if (item.getOwner().getId() == userId) {
+        if (item.getOwner().getId().compareTo(userId) == 0) {
             log.error("Владелец не может забронировать свою же вещь: " +
                     "userId: {}, itemId: {}", userId, itemId);
             throw new NotFoundException("Владелец не может забронировать свою же вещь: " +
