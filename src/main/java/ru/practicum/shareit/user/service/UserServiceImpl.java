@@ -33,6 +33,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User create(User user) {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         return userStorage.save(user);
     }
 
