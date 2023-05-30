@@ -34,11 +34,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public User create(User user) {
         try {
-            Thread.sleep(1000);
+            Thread.sleep(4000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
+        user.setEmail(user.getEmail());
         return userStorage.save(user);
     }
 
