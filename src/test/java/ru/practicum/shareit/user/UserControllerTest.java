@@ -32,6 +32,13 @@ public class UserControllerTest {
         Assertions.assertNotNull(addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())));
     }
 
+    @Test
+    public void testGetErrorCreateUserWithReplay() throws Exception {
+        CreateUserDto user = getAllFieldsUser(TestUtil.getRandomPartForEmail());
+        addUser(user);
+        addFailedUser(user);
+    }
+
     private UserDto addUser(CreateUserDto user) throws Exception {
         MvcResult res = mockMvc.perform(post("/users")
                         .content(objectMapper.writeValueAsString(user))
@@ -42,6 +49,18 @@ public class UserControllerTest {
                 .readValue(res.getResponse().getContentAsString(),
                         UserDto.class);
     }
+
+    private UserDto addFailedUser(CreateUserDto user) throws Exception {
+        MvcResult res = mockMvc.perform(post("/users")
+                        .content(objectMapper.writeValueAsString(user))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+        return objectMapper
+                .readValue(res.getResponse().getContentAsString(),
+                        UserDto.class);
+    }
+
 
     private CreateUserDto getAllFieldsUser(String random) {
         return CreateUserDto.builder()
