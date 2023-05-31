@@ -9,6 +9,8 @@ import ru.practicum.shareit.request.mapper.RequestMapper;
 import ru.practicum.shareit.request.service.ItemRequestService;
 
 import javax.validation.Valid;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * TODO Sprint add-item-requests.
@@ -28,5 +30,25 @@ public class ItemRequestController {
 
         return RequestMapper.toItemRequestDto(itemRequestService.create(
                 RequestMapper.toItemRequest(createItemRequestDto), userId));
+    }
+
+    @GetMapping
+    public List<ItemRequestDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId) {
+        log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
+
+        return itemRequestService.findAllByUserId(userId).stream()
+                .map(x -> RequestMapper.toItemRequestDto(x))
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/all")
+    public List<ItemRequestDto> findAllByFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                                     @RequestParam(required = false, defaultValue = "0") int from,
+                                                     @RequestParam(required = false, defaultValue = "10") int size) {
+        log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
+
+        return itemRequestService.findAllByOffset(userId, from, size).stream()
+                .map(x -> RequestMapper.toItemRequestDto(x))
+                .collect(Collectors.toList());
     }
 }
