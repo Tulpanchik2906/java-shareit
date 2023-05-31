@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemStorage;
@@ -55,7 +54,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional
     public Item create(Long userId, Item item) {
         validateExistUser(userId);
         item.setOwner(userStorage.findById(userId).get());
@@ -65,7 +63,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional
     public Item update(Long itemId, Long userId, Item item) {
         validateItemByUserAndById(itemId, userId);
 
@@ -106,7 +103,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional
     public Comment addComment(Long itemId, Long userId, Comment comment) {
         validateExistUser(userId);
 
