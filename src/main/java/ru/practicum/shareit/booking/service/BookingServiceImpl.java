@@ -7,16 +7,15 @@ import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
+import ru.practicum.shareit.booking.util.BookingUtil;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.ItemRepository;
-import ru.practicum.shareit.user.storage.UserRepository;
-import ru.practicum.shareit.util.exception.NotAvailableItemException;
+import ru.practicum.shareit.item.util.ItemUtil;
+import ru.practicum.shareit.user.util.UserUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 
 @Service
@@ -25,14 +24,15 @@ import java.util.Optional;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
-    private final ItemRepository itemRepository;
+    private final UserUtil userUtil;
+    private final ItemUtil itemUtil;
+    private final BookingUtil bookingUtil;
 
     @Override
     public Booking get(Long bookingId, Long userId) {
-        validateExistUser(userId);
-        validateExistBooking(bookingId);
-        Booking booking = bookingRepository.getById(bookingId);
+        userUtil.getExistUser(userId);
+        bookingUtil.validateExistBooking(bookingId);
+        Booking booking = bookingRepository.findById(bookingId).get();
 
         if ((booking.getItem().getOwner().getId().compareTo(userId) != 0) &&
                 ((booking.getBooker() == null) ||
@@ -49,8 +49,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<Booking> findAllByBooker(Long userId, String bookingStateStr) {
-        validateExistUser(userId);
-        BookingState bookingState = getBookingState(bookingStateStr);
+        userUtil.getExistUser(userId);
+        BookingState bookingState = bookingUtil.getBookingState(bookingStateStr);
         switch (bookingState) {
             case ALL:
                 return bookingRepository.findByBookerIdOrderByStartDesc(userId);
@@ -75,8 +75,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<Booking> findAllByOwner(Long userId, String bookingStateStr) {
-        validateExistUser(userId);
-        BookingState bookingState = getBookingState(bookingStateStr);
+        userUtil.getExistUser(userId);
+        BookingState bookingState = bookingUtil.getBookingState(bookingStateStr);
         switch (bookingState) {
             case ALL:
                 return bookingRepository.findByItemOwnerIdOrderByStartDesc(userId);
@@ -101,10 +101,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking create(Booking booking, Long userId, Long itemId) {
-        validateTimeBooking(booking.getStart(), booking.getEnd());
-        validateExistUser(userId);
-        Item item = getItem(itemId);
-        validateAvailable(item.getId());
+        bookingUtil.validateTimeBooking(booking.getStart(), booking.getEnd());
+        userUtil.getExistUser(userId);
+        Item item = itemUtil.getItem(itemId);
+        itemUtil.validateAvailable(item.getId());
 
         if (item.getOwner().getId().compareTo(userId) == 0) {
             log.error("Владелец не может забронировать свою же вещь: " +
@@ -114,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setItem(item);
-        booking.setBooker(userRepository.getReferenceById(userId));
+        booking.setBooker(userUtil.getExistUser(userId));
         booking.setStatus(BookingStatus.WAITING);
 
         return bookingRepository.save(booking);
@@ -122,9 +122,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking approve(Long bookingId, Long userId, boolean approved) {
-        validateExistUser(userId);
-        validateExistBooking(bookingId);
-        Booking booking = bookingRepository.getById(bookingId);
+        userUtil.getExistUser(userId);
+        bookingUtil.validateExistBooking(bookingId);
+        Booking booking = bookingRepository.findById(bookingId).get();
         if (booking.getStatus() != BookingStatus.WAITING) {
             log.error("Нельзя подтверждать бронирование со статусом: {} ",
                     booking.getStatus());
@@ -145,53 +145,5 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return bookingRepository.save(booking);
-    }
-
-
-    private void validateExistUser(Long userId) {
-        if (userId == null || !userRepository.findById(userId).isPresent()) {
-            log.error("Пользователь с id: {} не найден.", userId);
-            throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
-        }
-    }
-
-    private void validateExistBooking(Long bookingId) {
-        if (!bookingRepository.findById(bookingId).isPresent()) {
-            log.error("Бронирование с id: {} не найдено.", bookingId);
-            throw new NotFoundException("Бронирование с id: " + bookingId + " не найдено.");
-        }
-    }
-
-    private void validateAvailable(Long itemId) {
-        if (!itemRepository.findById(itemId).get().getAvailable().booleanValue()) {
-            log.error("Вещь с id: {} не доступна для бронирования.", itemId);
-            throw new NotAvailableItemException("Вещь с id: " + itemId + " не доступна для бронирования.");
-        }
-    }
-
-    private void validateTimeBooking(LocalDateTime startDate, LocalDateTime endDate) {
-        LocalDateTime now = LocalDateTime.now();
-        if (endDate.isBefore(startDate) || endDate.isEqual(startDate)) {
-            throw new ValidationException("Время конца бронирования не позднее времени начала");
-        }
-    }
-
-
-    private Item getItem(Long itemId) {
-        Optional<Item> item = itemRepository.findById(itemId);
-        if (!item.isPresent()) {
-            log.error("Вещь с id: {} не найден.", itemId);
-            throw new NotFoundException("Вещь с id: " + itemId + " не найдена.");
-        }
-        return item.get();
-    }
-
-    private BookingState getBookingState(String state) {
-        try {
-            return BookingState.valueOf(state);
-        } catch (Exception exception) {
-            log.error("Unknown state: ");
-            throw new ValidationException("Unknown state: " + state);
-        }
     }
 }

@@ -11,7 +11,7 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
-import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.user.util.UserUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemStorage;
-    private final UserRepository userStorage;
     private final CommentRepository commentRepository;
     private final BookingRepository bookingRepository;
+    private final UserUtil userUtil;
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        validateExistUser(userId);
+        userUtil.getExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
         Optional<Item> itemOpt = itemStorage.findById(itemId);
 
@@ -55,8 +55,8 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item create(Long userId, Item item) {
-        validateExistUser(userId);
-        item.setOwner(userStorage.findById(userId).get());
+        userUtil.getExistUser(userId);
+        item.setOwner(userUtil.getExistUser(userId));
         Item res = itemStorage.save(item);
 
         return getInfo(res.getId(), res.getOwner().getId());
@@ -94,7 +94,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> searchItems(Long userId, String text) {
-        validateExistUser(userId);
+        userUtil.getExistUser(userId);
         // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
@@ -104,7 +104,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Comment addComment(Long itemId, Long userId, Comment comment) {
-        validateExistUser(userId);
+        userUtil.getExistUser(userId);
 
         List<Booking> bookings = bookingRepository
                 .findByBookerIdAndItemIdAndStatusAndStartBefore(
@@ -119,21 +119,14 @@ public class ItemServiceImpl implements ItemService {
         }
 
         Item item = getInfo(itemId, userId);
-        comment.setAuthor(userStorage.findById(userId).get());
+        comment.setAuthor(userUtil.getExistUser(userId));
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
         return commentRepository.save(comment);
     }
 
-    private void validateExistUser(Long userId) {
-        if (!userStorage.findById(userId).isPresent()) {
-            log.error("Пользователь с id: {} не найден.", userId);
-            throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
-        }
-    }
-
     private void validateItemByUserAndById(Long itemId, Long userId) {
-        validateExistUser(userId);
+        userUtil.getExistUser(userId);
         List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {

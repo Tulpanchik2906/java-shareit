@@ -5,25 +5,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
-import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.user.util.UserUtil;
 
 import java.util.List;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userStorage;
+    private final UserUtil userUtil;
 
     @Override
     public User get(Long id) {
-        Optional<User> user = userStorage.findById(id);
-        if (!user.isPresent()) {
-            log.error("Пользователь с id: {} не найден.", id);
-            throw new NotFoundException("Пользователь с id: " + id + " не найден.");
-        }
-        return user.get();
+        return userUtil.getExistUser(id);
     }
 
     @Override
