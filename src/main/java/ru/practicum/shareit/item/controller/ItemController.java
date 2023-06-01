@@ -59,7 +59,8 @@ public class ItemController {
         log.info("Получен запрос на сохранение новой вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
-                itemService.create(userId, ItemMapper.toItem(item)));
+                itemService.create(userId, item.getRequestId(),
+                        ItemMapper.toItem(item)));
     }
 
 
@@ -82,7 +83,8 @@ public class ItemController {
         log.info("Получен запрос на обновлении вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
-                itemService.update(id, userId, ItemMapper.toItem(item)));
+                itemService.update(id, userId, item.getRequestId(),
+                        ItemMapper.toItem(item)));
     }
 
     @DeleteMapping("/{id}")

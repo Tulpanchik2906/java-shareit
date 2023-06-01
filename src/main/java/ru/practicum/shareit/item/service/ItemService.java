@@ -10,9 +10,9 @@ public interface ItemService {
 
     List<Item> findAllByUser(Long userId);
 
-    Item create(Long userId, Item item);
+    Item create(Long userId, Long requestId, Item item);
 
-    Item update(Long itemId, Long userId, Item item);
+    Item update(Long itemId, Long userId, Long requestId, Item item);
 
     void delete(Long itemId, Long userId);
 

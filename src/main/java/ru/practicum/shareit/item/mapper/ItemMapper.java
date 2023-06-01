@@ -5,7 +5,6 @@ import ru.practicum.shareit.item.dto.CreateItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.PatchItemDto;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.mapper.RequestMapper;
 import ru.practicum.shareit.user.mapper.UserMapper;
 
 import java.util.stream.Collectors;
@@ -25,7 +24,7 @@ public class ItemMapper {
                 .build();
 
         if (item.getRequest() != null) {
-            itemDto.setRequest(RequestMapper.toItemRequestDto(item.getRequest()));
+            itemDto.setRequestId(item.getRequest().getId());
         }
 
         if (item.getLastBooking() != null) {

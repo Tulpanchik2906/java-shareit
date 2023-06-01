@@ -11,6 +11,7 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.request.util.ItemRequestUtil;
 import ru.practicum.shareit.user.util.UserUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
@@ -29,6 +30,7 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemStorage;
     private final CommentRepository commentRepository;
     private final BookingRepository bookingRepository;
+    private final ItemRequestUtil itemRequestUtil;
     private final UserUtil userUtil;
 
     @Override
@@ -54,16 +56,17 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Item create(Long userId, Item item) {
-        userUtil.getExistUser(userId);
+    public Item create(Long userId, Long requestId, Item item) {
         item.setOwner(userUtil.getExistUser(userId));
+        item.setRequest(itemRequestUtil.getExistItemRequest(requestId));
+
         Item res = itemStorage.save(item);
 
         return getInfo(res.getId(), res.getOwner().getId());
     }
 
     @Override
-    public Item update(Long itemId, Long userId, Item item) {
+    public Item update(Long itemId, Long userId, Long requestId, Item item) {
         validateItemByUserAndById(itemId, userId);
 
         Item oldItem = getInfo(itemId, userId);
@@ -78,6 +81,10 @@ public class ItemServiceImpl implements ItemService {
 
         if (item.getAvailable() != null) {
             oldItem.setAvailable(item.getAvailable());
+        }
+
+        if (requestId != null) {
+            oldItem.setRequest(itemRequestUtil.getExistItemRequest(requestId));
         }
 
         Item res = itemStorage.save(oldItem);

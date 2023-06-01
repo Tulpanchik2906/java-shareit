@@ -2,13 +2,13 @@ package ru.practicum.shareit.request.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
 import ru.practicum.shareit.user.util.UserUtil;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -30,14 +30,16 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     public List<ItemRequest> findAllByUserId(Long userId) {
         userUtil.getExistUser(userId);
-        return itemRequestRepository.findByRequesterId(userId);
+        return itemRequestRepository.findByRequesterId(userId,
+                PageRequest.of(0, 100));
     }
 
     @Override
     public List<ItemRequest> findAllByOffset(Long userId, int from, int size) {
         userUtil.getExistUser(userId);
         //TODO: Разобраться с пагинацией
-        //return itemRequestRepository.findAll(PageRequest.of(from, size)).toList();
-        return new ArrayList<>();
+        return itemRequestRepository.findByRequesterId(userId,
+                PageRequest.of(from, size));
+
     }
 }
