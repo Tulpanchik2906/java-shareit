@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * TODO Sprint add-item-requests.
@@ -34,5 +36,8 @@ public class ItemRequest {
 
     @Column(name = "create_date")
     private LocalDateTime created; // дата и время создания запроса.
+
+    @Transient
+    private List<Item> items;
 
 }
