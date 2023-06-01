@@ -45,9 +45,9 @@ public class ItemRequestController {
     @GetMapping("/all")
     public List<ItemRequestDto> findAllByFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                                      @RequestParam(required = false, defaultValue = "0")
-                                                     @Min(0) int from,
-                                                     @RequestParam(required = false, defaultValue = "10")
-                                                     @Min(1) int size) {
+                                                     @Valid @Min(0) int from,
+                                                     @RequestParam(required = false, defaultValue = "20")
+                                                     @Valid @Min(1) int size) {
         log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
 
         return itemRequestService.findAllByOffset(userId, from, size).stream()

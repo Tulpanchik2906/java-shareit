@@ -30,8 +30,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     public List<ItemRequest> findAllByUserId(Long userId) {
         userUtil.getExistUser(userId);
-        return itemRequestRepository.findByRequesterId(userId,
-                PageRequest.of(0, 100));
+        return itemRequestRepository.findByRequesterId(userId);
     }
 
     @Override
