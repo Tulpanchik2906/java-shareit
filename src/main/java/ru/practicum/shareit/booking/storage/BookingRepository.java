@@ -3,6 +3,7 @@ package ru.practicum.shareit.booking.storage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -68,4 +69,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Запросы для следующего бронирования
     List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
             Long itemId, Long userId, BookingStatus status, LocalDateTime currentTime);
+
+    default void validateExistBooking(Long bookingId) {
+        if (findById(bookingId).isEmpty()) {
+            throw new NotFoundException("Бронирование с id: " + bookingId + " не найдено.");
+        }
+    }
 }

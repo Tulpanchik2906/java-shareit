@@ -11,8 +11,8 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
-import ru.practicum.shareit.request.util.ItemRequestUtil;
-import ru.practicum.shareit.user.util.UserUtil;
+import ru.practicum.shareit.request.storage.ItemRequestRepository;
+import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -30,12 +30,12 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemStorage;
     private final CommentRepository commentRepository;
     private final BookingRepository bookingRepository;
-    private final ItemRequestUtil itemRequestUtil;
-    private final UserUtil userUtil;
+    private final UserRepository userRepository;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        userUtil.getExistUser(userId);
+        userRepository.getExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
         Optional<Item> itemOpt = itemStorage.findById(itemId);
 
@@ -56,9 +56,10 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public Item create(Long userId, Long requestId, Item item) {
-        item.setOwner(userUtil.getExistUser(userId));
-        item.setRequest(itemRequestUtil.getExistItemRequest(requestId));
+        item.setOwner(userRepository.getExistUser(userId));
+        item.setRequest(itemRequestRepository.getExistItemRequest(requestId));
 
         Item res = itemStorage.save(item);
 
@@ -66,6 +67,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public Item update(Long itemId, Long userId, Long requestId, Item item) {
         validateItemByUserAndById(itemId, userId);
 
@@ -84,7 +86,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (requestId != null) {
-            oldItem.setRequest(itemRequestUtil.getExistItemRequest(requestId));
+            oldItem.setRequest(itemRequestRepository.getExistItemRequest(requestId));
         }
 
         Item res = itemStorage.save(oldItem);
@@ -101,7 +103,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> searchItems(Long userId, String text) {
-        userUtil.getExistUser(userId);
+        userRepository.getExistUser(userId);
         // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
@@ -110,30 +112,29 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public Comment addComment(Long itemId, Long userId, Comment comment) {
-        userUtil.getExistUser(userId);
+        userRepository.getExistUser(userId);
 
         List<Booking> bookings = bookingRepository
                 .findByBookerIdAndItemIdAndStatusAndStartBefore(
                         userId, itemId, BookingStatus.APPROVED,
                         LocalDateTime.now());
         if (bookings.isEmpty()) {
-            log.error("Пользователь с id {} не может оставлять комментарий" +
-                    " к вещи с id: {}", userId, itemId);
             throw new ValidationException(
                     "Пользователь с id " + userId + " не может оставлять комментарий" +
                             " к вещи с id: " + itemId);
         }
 
         Item item = getInfo(itemId, userId);
-        comment.setAuthor(userUtil.getExistUser(userId));
+        comment.setAuthor(userRepository.getExistUser(userId));
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
         return commentRepository.save(comment);
     }
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
-        userUtil.getExistUser(userId);
+        userRepository.getExistUser(userId);
         List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {

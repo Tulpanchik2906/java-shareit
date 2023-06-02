@@ -26,18 +26,17 @@ public class BookingController {
     @PostMapping
     public BookingDto create(@RequestHeader(X_SHARER_USER_ID) Long userId,
                              @Valid @RequestBody BookingCreateDto bookingCreateDto) {
-        log.info("Получен запрос на бронирование вещи {} от пользователя {} ",
-                bookingCreateDto.getItemId(), userId);
+        Long itemId = bookingCreateDto.getItemId();
+        log.info("Получен запрос на бронирование вещи {} от пользователя {} ", itemId, userId);
         return BookingMapper.toBookingDto(
-                bookingService.create(BookingMapper.toBooking(bookingCreateDto), userId, bookingCreateDto.getItemId()));
+                bookingService.create(BookingMapper.toBooking(bookingCreateDto), userId, itemId));
     }
 
     @PatchMapping("/{id}")
     public BookingDto approve(@PathVariable Long id,
                               @RequestHeader(X_SHARER_USER_ID) Long userId,
                               @RequestParam(required = true) boolean approved) {
-        log.info("Получен запрос на подтвержение бронирования c id {} " +
-                        "от пользователя {} с параметром approved = {} ",
+        log.info("Получен запрос на подтвержение бронирования c id {} от пользователя {} с параметром approved = {} ",
                 id, userId, approved);
         return BookingMapper.toBookingDto(
                 bookingService.approve(id, userId, approved));
@@ -54,8 +53,7 @@ public class BookingController {
     @GetMapping()
     public List<BookingDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                     @RequestParam(required = false, defaultValue = "ALL") String state) {
-        log.info("Получен запрос на получение списка бронирований пользователя {} " +
-                        "с пармаетром state: {} ",
+        log.info("Получен запрос на получение списка бронирований пользователя {} с пармаетром state: {} ",
                 userId, state);
 
         return bookingService.findAllByBooker(userId, state).stream()
@@ -66,8 +64,7 @@ public class BookingController {
     @GetMapping("/owner")
     public List<BookingDto> findAllByOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                            @RequestParam(required = false, defaultValue = "ALL") String state) {
-        log.info("Получен запрос на получение списка бронирований владельца {} " +
-                        "с пармаетром state: {} ",
+        log.info("Получен запрос на получение списка бронирований владельца {} с пармаетром state: {} ",
                 userId, state);
         return bookingService.findAllByOwner(userId, state).stream()
                 .map(x -> BookingMapper.toBookingDto(x))

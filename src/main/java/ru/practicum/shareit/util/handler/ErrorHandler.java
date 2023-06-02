@@ -58,6 +58,7 @@ public class ErrorHandler {
             HttpStatus httpStatus, Exception exception)
             throws JsonProcessingException {
         ErrorResponse errorResponse = new ErrorResponse(exception.getMessage());
+        log.error(exception.getMessage());
         return ResponseEntity
                 .status(httpStatus)
                 .contentType(MediaType.APPLICATION_JSON)
