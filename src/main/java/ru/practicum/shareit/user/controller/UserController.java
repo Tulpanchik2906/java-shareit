@@ -42,9 +42,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public boolean deleteUserById(@PathVariable Long id) {
+    public void deleteUserById(@PathVariable Long id) {
         log.info("Получен запрос на удаление пользователя с id: {} .", id);
-        return userService.delete(id);
+        userService.delete(id);
     }
 
     @GetMapping

@@ -3,10 +3,9 @@ package ru.practicum.shareit.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.storage.UserStorage;
-import ru.practicum.shareit.util.exception.DuplicateEmailException;
-import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.user.storage.UserRepository;
 
 import java.util.List;
 
@@ -14,16 +13,11 @@ import java.util.List;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private final UserStorage userStorage;
+    private final UserRepository userStorage;
 
     @Override
     public User get(Long id) {
-        User user = userStorage.get(id);
-        if (user == null) {
-            log.error("Пользователь с id: {} не найден.", id);
-            throw new NotFoundException("Пользователь с id: " + id + " не найден.");
-        }
-        return user;
+        return userStorage.getExistUser(id);
     }
 
     @Override
@@ -32,12 +26,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User create(User user) {
-        validateExistEmail(user.getEmail());
-        return userStorage.add(user);
+        user.setEmail(user.getEmail());
+        return userStorage.save(user);
     }
 
     @Override
+    @Transactional
     public User update(Long userId, User userPatch) {
         User newUser = get(userId);
 
@@ -46,26 +42,17 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userPatch.getEmail() != null) {
-            if (userPatch.getEmail().compareTo(newUser.getEmail()) != 0) {
-                validateExistEmail(userPatch.getEmail());
-            }
             newUser.setEmail(userPatch.getEmail());
         }
 
-        return userStorage.update(newUser);
+        return userStorage.save(newUser);
     }
 
     @Override
-    public boolean delete(Long id) {
+    @Transactional
+    public void delete(Long id) {
         User user = get(id);
-        return userStorage.delete(id);
+        userStorage.deleteById(id);
     }
 
-
-    private void validateExistEmail(String email) {
-        if (userStorage.containsEmail(email)) {
-            log.error("Пользователь с Email: {} уже существует.", email);
-            throw new DuplicateEmailException("Пользователь с Email: " + email + " уже существует.");
-        }
-    }
 }

@@ -3,29 +3,43 @@ package ru.practicum.shareit.item.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.enums.BookingStatus;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.storage.BookingRepository;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.storage.ItemStorage;
-import ru.practicum.shareit.user.storage.UserStorage;
+import ru.practicum.shareit.item.storage.CommentRepository;
+import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.request.storage.ItemRequestRepository;
+import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.util.exception.ValidationException;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ItemServiceImpl implements ItemService {
 
-    private final ItemStorage itemStorage;
-
-    private final UserStorage userStorage;
+    private final ItemRepository itemStorage;
+    private final CommentRepository commentRepository;
+    private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        validateExistUser(userId);
+        userRepository.getExistUser(userId);
         // Просматривать информацию о вещи может любой пользователь
-        Item item = itemStorage.get(itemId);
+        Optional<Item> itemOpt = itemStorage.findById(itemId);
 
-        if (item == null) {
+        if (!itemOpt.isPresent()) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
@@ -33,23 +47,28 @@ public class ItemServiceImpl implements ItemService {
 
         }
 
-        return item;
+        return setComments(setBookingsInfo(itemOpt.get(), userId));
     }
 
     @Override
     public List<Item> findAllByUser(Long userId) {
-        return itemStorage.findAll(userId);
+        return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
     }
 
     @Override
-    public Item create(Long userId, Item item) {
-        validateExistUser(userId);
-        item.setOwner(userStorage.get(userId));
-        return itemStorage.add(item);
+    @Transactional
+    public Item create(Long userId, Long requestId, Item item) {
+        item.setOwner(userRepository.getExistUser(userId));
+        item.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+
+        Item res = itemStorage.save(item);
+
+        return getInfo(res.getId(), res.getOwner().getId());
     }
 
     @Override
-    public Item update(Long itemId, Long userId, Item item) {
+    @Transactional
+    public Item update(Long itemId, Long userId, Long requestId, Item item) {
         validateItemByUserAndById(itemId, userId);
 
         Item oldItem = getInfo(itemId, userId);
@@ -66,33 +85,59 @@ public class ItemServiceImpl implements ItemService {
             oldItem.setAvailable(item.getAvailable());
         }
 
-        return itemStorage.update(oldItem);
+        if (requestId != null) {
+            oldItem.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+        }
+
+        Item res = itemStorage.save(oldItem);
+
+        return getInfo(res.getId(), res.getOwner().getId());
     }
 
     @Override
-    public boolean delete(Long itemId, Long userId) {
+    @Transactional
+    public void delete(Long itemId, Long userId) {
         validateItemByUserAndById(itemId, userId);
-        return itemStorage.delete(itemId, userId);
+        itemStorage.deleteById(itemId);
     }
 
     @Override
     public List<Item> searchItems(Long userId, String text) {
-        validateExistUser(userId);
-        return itemStorage.search(text);
+        userRepository.getExistUser(userId);
+        // В случае пустого параметра text вернуть пустой список
+        if (text == null || text.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return setAddParamToItemList(itemStorage.search(text), userId);
     }
 
-    private void validateExistUser(Long userId) {
-        if (userStorage.get(userId) == null) {
-            log.error("Пользователь с id: {} не найден.", userId);
-            throw new NotFoundException("Пользователь с id: " + userId + " не найден.");
+    @Override
+    @Transactional
+    public Comment addComment(Long itemId, Long userId, Comment comment) {
+        userRepository.getExistUser(userId);
+
+        List<Booking> bookings = bookingRepository
+                .findByBookerIdAndItemIdAndStatusAndStartBefore(
+                        userId, itemId, BookingStatus.APPROVED,
+                        LocalDateTime.now());
+        if (bookings.isEmpty()) {
+            throw new ValidationException(
+                    "Пользователь с id " + userId + " не может оставлять комментарий" +
+                            " к вещи с id: " + itemId);
         }
+
+        Item item = getInfo(itemId, userId);
+        comment.setAuthor(userRepository.getExistUser(userId));
+        comment.setItem(item);
+        comment.setCreated(LocalDateTime.now());
+        return commentRepository.save(comment);
     }
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
-        validateExistUser(userId);
-        Item item = itemStorage.get(itemId, userId);
+        userRepository.getExistUser(userId);
+        List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
-        if (item == null) {
+        if (item.size() == 0) {
             log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
 
             throw new NotFoundException("Вещь с id: " + itemId +
@@ -100,4 +145,51 @@ public class ItemServiceImpl implements ItemService {
 
         }
     }
+
+    private Item setBookingsInfo(Item item, Long userId) {
+        // Поиск последнего бронирования (уже закончилось)
+        log.info("Текущее время {}", LocalDateTime.now());
+
+        List<Booking> findLastBooking = bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndEndBeforeOrderByEndDesc(
+                        item.getId(), userId, BookingStatus.APPROVED, LocalDateTime.now());
+
+        if (!findLastBooking.isEmpty()) {
+            item.setLastBooking(findLastBooking.get(0));
+        }
+
+        // Поиск последнего бронирования (текущее)
+        List<Booking> findCurrentBooking = bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndStartBeforeAndEndAfterOrderByEndDesc(
+                        item.getId(), userId, BookingStatus.APPROVED,
+                        LocalDateTime.now(), LocalDateTime.now());
+
+        if (!findCurrentBooking.isEmpty()) {
+            item.setLastBooking(findCurrentBooking.get(0));
+        }
+
+        // Поиск следующего бронирования
+        List<Booking> findNextBooking = bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
+                        item.getId(), userId, BookingStatus.APPROVED, LocalDateTime.now());
+
+        if (!findNextBooking.isEmpty()) {
+            item.setNextBooking(findNextBooking.get(0));
+        }
+
+        return item;
+    }
+
+    private Item setComments(Item item) {
+        item.setComments(commentRepository.findByItemId(item.getId()));
+        return item;
+    }
+
+    private List<Item> setAddParamToItemList(List<Item> items, Long userId) {
+        return items.stream()
+                .map(x -> setComments(setBookingsInfo(x, userId)))
+                .collect(Collectors.toList());
+    }
 }
+
+

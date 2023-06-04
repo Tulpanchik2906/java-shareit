@@ -3,9 +3,8 @@ package ru.practicum.shareit.item.controller;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.item.dto.CreateItemDto;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.PatchItemDto;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
 
@@ -60,24 +59,40 @@ public class ItemController {
         log.info("Получен запрос на сохранение новой вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
-                itemService.create(userId, ItemMapper.toItem(item)));
+                itemService.create(userId, item.getRequestId(),
+                        ItemMapper.toItem(item)));
     }
 
+
+    @PostMapping("/{id}/comment")
+    public CommentDto addComment(@PathVariable Long id,
+                                 @RequestHeader(X_SHARER_USER_ID) Long userId,
+                                 @Valid @RequestBody CreateCommentDto comment) {
+        log.info("Получен запрос на добавления комментария " +
+                "для вещи с id {} от пользователя {}", id, userId);
+        return CommentMapper.toCommentDto(
+                itemService.addComment(id, userId, CommentMapper.toComment(comment)));
+    }
+
+
     @PatchMapping("/{id}")
+
     public ItemDto update(@PathVariable Long id,
                           @RequestHeader(X_SHARER_USER_ID) Long userId,
                           @RequestBody PatchItemDto item) {
         log.info("Получен запрос на обновлении вещи пользователя {} ", userId);
 
         return ItemMapper.toItemDto(
-                itemService.update(id, userId, ItemMapper.toItem(item)));
+                itemService.update(id, userId, item.getRequestId(),
+                        ItemMapper.toItem(item)));
     }
 
     @DeleteMapping("/{id}")
-    public boolean deleteItem(@PathVariable Long id,
-                              @RequestHeader(X_SHARER_USER_ID) long userId) {
+    public void deleteItem(@PathVariable Long id,
+                           @RequestHeader(X_SHARER_USER_ID) long userId) {
         log.info("Получен запрос на удалении вещи {} пользователя {} ", id, userId);
 
-        return itemService.delete(userId, id);
+        itemService.delete(userId, id);
     }
+
 }
