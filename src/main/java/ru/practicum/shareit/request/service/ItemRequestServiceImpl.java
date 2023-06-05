@@ -9,6 +9,7 @@ import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,18 +34,37 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
+    public ItemRequest get(Long requestId, Long userId) {
+        userRepository.getExistUser(userId);
+        itemRequestRepository.findById(requestId).orElseThrow(
+                () -> new NotFoundException(
+                        "Не найден запрос на вещь с id: " + requestId));
+        return setItems(itemRequestRepository.getExistItemRequest(requestId));
+    }
+
+
+    @Override
     public List<ItemRequest> findAllByUserId(Long userId) {
         userRepository.getExistUser(userId);
-        return setItems(itemRequestRepository.findByRequesterId(userId));
+        return setItems(itemRequestRepository.findByRequesterIdOrderByCreatedDesc(userId));
     }
 
     @Override
-    public List<ItemRequest> findAllByOffset(Long userId, int from, int size) {
+    public List<ItemRequest> findAllByOffset(Long userId, Integer from, Integer size) {
         userRepository.getExistUser(userId);
-        //TODO: Разобраться с пагинацией
-        return setItems(itemRequestRepository.findByRequesterId(userId,
-                PageRequest.of(from, size)));
 
+        if (from == null && size == null) {
+            return setItems(itemRequestRepository.findByRequesterIdNotOrderByCreatedDesc(userId));
+        } else if (from == null || size == null) {
+            throw new RuntimeException("Не хватает параметров для формирования списка");
+        } else {
+            return setItems(itemRequestRepository
+                    .findByRequesterIdNotOrderByCreatedDesc(userId, PageRequest.of(from, 1))
+                    .stream()
+                    .limit(size)
+                    .collect(Collectors.toList())
+            );
+        }
     }
 
     private ItemRequest setItems(ItemRequest itemRequest) {

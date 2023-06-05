@@ -7,7 +7,9 @@ import java.util.List;
 public interface ItemRequestService {
     ItemRequest create(ItemRequest itemRequest, Long userId);
 
+    ItemRequest get(Long requestId, Long userId);
+
     List<ItemRequest> findAllByUserId(Long userId);
 
-    List<ItemRequest> findAllByOffset(Long userId, int from, int size);
+    List<ItemRequest> findAllByOffset(Long userId, Integer from, Integer size);
 }

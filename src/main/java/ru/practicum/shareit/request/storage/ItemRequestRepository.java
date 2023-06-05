@@ -8,9 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> {
-    List<ItemRequest> findByRequesterId(Long userId, Pageable pageable);
+    List<ItemRequest> findByRequesterIdOrderByCreatedDesc(Long userId, Pageable pageable);
 
-    List<ItemRequest> findByRequesterId(Long userId);
+    List<ItemRequest> findByRequesterIdOrderByCreatedDesc(Long userId);
+
+    List<ItemRequest> findByRequesterIdNotOrderByCreatedDesc(Long userId, Pageable pageable);
+
+    List<ItemRequest> findByRequesterIdNotOrderByCreatedDesc(Long userId);
 
     default ItemRequest getExistItemRequest(Long requestId) {
         if (requestId != null) {

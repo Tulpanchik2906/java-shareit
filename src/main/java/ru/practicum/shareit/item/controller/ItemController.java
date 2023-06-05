@@ -2,6 +2,7 @@ package ru.practicum.shareit.item.controller;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.mapper.CommentMapper;
@@ -9,6 +10,8 @@ import ru.practicum.shareit.item.mapper.ItemMapper;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,16 +22,19 @@ import java.util.stream.Collectors;
 @RequestMapping("/items")
 @AllArgsConstructor
 @Slf4j
+@Validated
 public class ItemController {
     private final ItemServiceImpl itemService;
     private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @GetMapping
-    public List<ItemDto> findAllByUserId(@RequestHeader(X_SHARER_USER_ID) Long userId) {
+    public List<ItemDto> findAllByUserId(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                         @RequestParam(required = false) @PositiveOrZero Integer from,
+                                         @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получение всего списка вещей пользователя {}.",
                 userId);
 
-        return itemService.findAllByUser(userId).stream()
+        return itemService.findAllByUser(userId, from, size).stream()
                 .map(item -> ItemMapper.toItemDto(item))
                 .collect(Collectors.toList());
     }
@@ -44,11 +50,13 @@ public class ItemController {
 
     @GetMapping("/search")
     public List<ItemDto> search(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                @RequestParam(required = false) String text) {
+                                @RequestParam(required = false) String text,
+                                @RequestParam(required = false) @PositiveOrZero Integer from,
+                                @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получение списка вещей пользователя {}" +
                 " по поиску: {}.", userId, text);
 
-        return itemService.searchItems(userId, text).stream()
+        return itemService.searchItems(userId, text, from, size).stream()
                 .map(item -> ItemMapper.toItemDto(item))
                 .collect(Collectors.toList());
     }
@@ -89,7 +97,7 @@ public class ItemController {
 
     @DeleteMapping("/{id}")
     public void deleteItem(@PathVariable Long id,
-                           @RequestHeader(X_SHARER_USER_ID) long userId) {
+                           @RequestHeader(X_SHARER_USER_ID) Long userId) {
         log.info("Получен запрос на удалении вещи {} пользователя {} ", id, userId);
 
         itemService.delete(userId, id);

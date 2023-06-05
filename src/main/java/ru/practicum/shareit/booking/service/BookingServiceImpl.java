@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.enums.BookingState;
@@ -16,6 +17,7 @@ import ru.practicum.shareit.util.exception.ValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -47,55 +49,148 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<Booking> findAllByBooker(Long userId, String bookingStateStr) {
+    public List<Booking> findAllByBooker(
+            Long userId, String bookingStateStr, Integer from, Integer size) {
         userRepository.getExistUser(userId);
         BookingState bookingState = getBookingState(bookingStateStr);
-        switch (bookingState) {
-            case ALL:
-                return bookingRepository.findByBookerIdOrderByStartDesc(userId);
-            case CURRENT:
-                return bookingRepository
-                        .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
-                                userId, LocalDateTime.now(), LocalDateTime.now());
-            case PAST:
-                return bookingRepository
-                        .findByBookerIdAndEndBeforeOrderByStartDesc(userId, LocalDateTime.now());
-            case FUTURE:
-                return bookingRepository
-                        .findByBookerIdAndStartAfterOrderByStartDesc(userId, LocalDateTime.now());
-            case WAITING:
-                return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
-            case REJECTED:
-                return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
-            default:
-                return null;
+        LocalDateTime now = LocalDateTime.now();
+        if (from == null && size == null) {
+            switch (bookingState) {
+                case ALL:
+                    return bookingRepository.findByBookerIdOrderByStartDesc(userId);
+                case CURRENT:
+                    return bookingRepository
+                            .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                    userId, now, now);
+                case PAST:
+                    return bookingRepository
+                            .findByBookerIdAndEndBeforeOrderByStartDesc(userId, now);
+                case FUTURE:
+                    return bookingRepository
+                            .findByBookerIdAndStartAfterOrderByStartDesc(userId, now);
+                case WAITING:
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
+                case REJECTED:
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
+                default:
+                    return null;
+            }
         }
+
+        if (from != null && size != null) {
+            switch (bookingState) {
+                case ALL:
+                    return bookingRepository
+                            .findByBookerIdOrderByStartDesc(userId, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case CURRENT:
+                    return bookingRepository
+                            .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                    userId, now, now, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case PAST:
+                    return bookingRepository
+                            .findByBookerIdAndEndBeforeOrderByStartDesc(userId, now,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case FUTURE:
+                    return bookingRepository
+                            .findByBookerIdAndStartAfterOrderByStartDesc(userId, now,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case WAITING:
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case REJECTED:
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                default:
+                    return null;
+            }
+        }
+
+        throw new RuntimeException("Не хватает параметров для формирования списка");
+
     }
 
     @Override
-    public List<Booking> findAllByOwner(Long userId, String bookingStateStr) {
+    public List<Booking> findAllByOwner(Long userId, String bookingStateStr,
+                                        Integer from, Integer size) {
         userRepository.getExistUser(userId);
         BookingState bookingState = getBookingState(bookingStateStr);
-        switch (bookingState) {
-            case ALL:
-                return bookingRepository.findByItemOwnerIdOrderByStartDesc(userId);
-            case CURRENT:
-                return bookingRepository
-                        .findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
-                                userId, LocalDateTime.now(), LocalDateTime.now());
-            case PAST:
-                return bookingRepository
-                        .findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, LocalDateTime.now());
-            case FUTURE:
-                return bookingRepository
-                        .findByItemOwnerIdAndStartAfterOrderByStartDesc(userId, LocalDateTime.now());
-            case WAITING:
-                return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
-            case REJECTED:
-                return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
-            default:
-                return null;
+        LocalDateTime now = LocalDateTime.now();
+        if (from == null && size == null) {
+            switch (bookingState) {
+                case ALL:
+                    return bookingRepository.findByItemOwnerIdOrderByStartDesc(userId);
+                case CURRENT:
+                    return bookingRepository
+                            .findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                    userId, now, now);
+                case PAST:
+                    return bookingRepository
+                            .findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, now);
+                case FUTURE:
+                    return bookingRepository
+                            .findByItemOwnerIdAndStartAfterOrderByStartDesc(userId, now);
+                case WAITING:
+                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
+                case REJECTED:
+                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
+                default:
+                    return null;
+            }
         }
+
+        if (from != null && size != null) {
+            switch (bookingState) {
+                case ALL:
+                    return bookingRepository.findByItemOwnerIdOrderByStartDesc(
+                                    userId, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case CURRENT:
+                    return bookingRepository
+                            .findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                    userId, now, now,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case PAST:
+                    return bookingRepository
+                            .findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, now,
+                                    PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case FUTURE:
+                    return bookingRepository
+                            .findByItemOwnerIdAndStartAfterOrderByStartDesc(
+                                    userId, now, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case WAITING:
+                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
+                                    userId, BookingStatus.WAITING, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                case REJECTED:
+                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
+                                    userId, BookingStatus.REJECTED, PageRequest.of(from, 1))
+                            .stream().limit(size)
+                            .collect(Collectors.toList());
+                default:
+                    return null;
+            }
+        }
+        throw new RuntimeException("Не хватает параметров для формирования списка");
     }
 
     @Override
@@ -143,7 +238,6 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateTimeBooking(LocalDateTime startDate, LocalDateTime endDate) {
-        LocalDateTime now = LocalDateTime.now();
         if (endDate.isBefore(startDate) || endDate.isEqual(startDate)) {
             throw new ValidationException("Время конца бронирования не позднее времени начала");
         }

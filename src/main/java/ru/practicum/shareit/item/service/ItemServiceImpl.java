@@ -2,6 +2,7 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.enums.BookingStatus;
@@ -51,8 +52,17 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> findAllByUser(Long userId) {
-        return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
+    public List<Item> findAllByUser(Long userId, Integer from, Integer size) {
+        if (from == null && size == null) {
+            return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
+        } else if (from == null || size == null) {
+            throw new RuntimeException("Не хватает параметров для формирования списка");
+        } else {
+            return setAddParamToItemList(itemStorage
+                    .findByOwnerId(userId, PageRequest.of(from, 1)), userId)
+                    .stream().limit(size)
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -102,7 +112,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> searchItems(Long userId, String text) {
+    public List<Item> searchItems(Long userId, String text, Integer from, Integer size) {
         userRepository.getExistUser(userId);
         // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
