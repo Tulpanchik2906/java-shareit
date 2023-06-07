@@ -54,7 +54,7 @@ public class ItemRequestController {
     }
 
     @GetMapping("/all")
-    public List<ItemRequestDto> findAllByFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
+    public List<ItemRequestDto> findAllWithFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                                      @RequestParam(required = false) @PositiveOrZero Integer from,
                                                      @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);

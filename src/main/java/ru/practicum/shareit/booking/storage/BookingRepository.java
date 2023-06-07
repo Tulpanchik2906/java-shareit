@@ -102,17 +102,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime currentTimeStart, LocalDateTime currentTimeEnd);
 
 
-    List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartBeforeAndEndAfterOrderByEndDesc(
-            Long itemId, Long userId, BookingStatus status,
-            LocalDateTime currentTimeStart, LocalDateTime currentTimeEnd, Pageable pageable);
-
     // Запросы для следующего бронирования
     List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
             Long itemId, Long userId, BookingStatus status, LocalDateTime currentTime);
 
-    List<Booking> findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
-            Long itemId, Long userId, BookingStatus status, LocalDateTime currentTime,
-            Pageable pageable);
 
     default void validateExistBooking(Long bookingId) {
         if (findById(bookingId).isEmpty()) {

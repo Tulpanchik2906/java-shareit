@@ -12,9 +12,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.MultiValueMap;
 import ru.practicum.shareit.TestUtil;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.enums.BookingState;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.item.dto.CreateItemDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -22,6 +24,9 @@ import ru.practicum.shareit.user.dto.CreateUserDto;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,38 +56,275 @@ public class BookingControllerTest {
 
     @Test
     public void testCreateBookingSuccess() throws Exception {
-        Assertions.assertNotNull(createBooking(getAllFieldsBooking(itemId1), bookerId));
+        Assertions.assertNotNull(sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId));
+    }
+
+    @Test
+    public void testCreateBookingFailedNoUser() throws Exception {
+        sendRequestCreateBookingFailed(getAllFieldsBooking(itemId1), Long.valueOf(-1L));
+    }
+
+    @Test
+    public void testCreateBookingFailedAvailableItem() throws Exception {
+        CreateItemDto createItemDto = getAllFieldsItem();
+        createItemDto.setAvailable(false);
+        ItemDto itemId2 = addItem(createItemDto, ownerId);
+        sendRequestCreateBookingFailed(getAllFieldsBooking(itemId2.getId()), bookerId);
     }
 
     @Test
     public void testApproveTrueBookingSuccess() throws Exception {
-        Long userId2 = addUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())).getId();
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), userId2);
+        BookingDto bookingDto = sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId);
 
-        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), ownerId, true);
+        BookingDto bookingDtoRes = sendRequestApproveBooking(
+                bookingDto.getId(), ownerId, true);
 
         Assertions.assertEquals(bookingDtoRes.getStatus(), BookingStatus.APPROVED);
     }
 
     @Test
     public void testApproveFalseBookingSuccess() throws Exception {
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), bookerId);
+        BookingDto bookingDto = sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId);
 
-        BookingDto bookingDtoRes = approveBooking(bookingDto.getId(), ownerId, false);
+        BookingDto bookingDtoRes = sendRequestApproveBooking(
+                bookingDto.getId(), ownerId, false);
 
         Assertions.assertEquals(bookingDtoRes.getStatus(), BookingStatus.REJECTED);
     }
 
     @Test
-    public void testGetBookingSuccess() throws Exception {
-        BookingDto bookingDto = createBooking(getAllFieldsBooking(itemId1), bookerId);
+    public void testApproveTrueBookingFailedApproveByBooker() throws Exception {
+        BookingDto bookingDto = sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId);
 
-        BookingDto bookingDtoRes = getBooking(bookingDto.getId(), ownerId);
+        sendRequestApproveBookingFailed(bookingDto.getId(), bookerId, true);
+    }
+
+    @Test
+    public void testApproveTrueBookingFailedNoWaitingStatus() throws Exception {
+        BookingDto bookingDto = sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId);
+
+        sendRequestApproveBooking(bookingDto.getId(), ownerId, true);
+
+        sendRequestApproveBookingFailed(bookingDto.getId(), ownerId, true);
+    }
+
+    @Test
+    public void testGetBookingSuccess() throws Exception {
+        BookingDto bookingDto = sendRequestCreateBooking(getAllFieldsBooking(itemId1), bookerId);
+
+        BookingDto bookingDtoRes = sendRequestGetBooking(bookingDto.getId(), ownerId);
 
         Assertions.assertNotNull(bookingDtoRes);
     }
 
-    private BookingDto getBooking(Long bookingId, Long userId) throws Exception {
+    @Test
+    public void testFindAllByBookerStateAll() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.ALL.name(), null, null));
+
+    }
+
+    @Test
+    public void testFindAllByBookerStateCurrent() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.CURRENT.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByBookerStatePast() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.PAST.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByBookerStateFeature() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.FUTURE.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByBookerStateWaiting() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.WAITING.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByBookerStateRejected() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.REJECTED.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByBookerStateAlWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.ALL.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerStateCurrentWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.CURRENT.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerStatePastWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.PAST.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerStateFeatureWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.FUTURE.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerStateWaitingWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.WAITING.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerStateRejectedWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByBookerBookingWithParams(bookerId,
+                        BookingState.REJECTED.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByBookerFailedNoStatus() throws Exception {
+        sendRequestFindAllByBookerBookingWithParamsFailed(
+                bookerId, "NO_STATUS", null, null);
+    }
+
+    @Test
+    public void testFindAllByBookerWithParamFailedNoStatus() throws Exception {
+        sendRequestFindAllByBookerBookingWithParamsFailed(bookerId,
+                "NO_STATUS", 0, 20);
+    }
+
+    @Test
+    public void testFindAllByBookerFailedNoParam() throws Exception {
+        sendRequestFindAllByBookerBookingWithParamsFailed(
+                bookerId, BookingState.ALL.name(), null, 1);
+    }
+
+    @Test
+    public void testFindAllByOwnerStateAll() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.ALL.name(), null, null));
+
+    }
+
+    @Test
+    public void testFindAllByOwnerStateCurrent() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.CURRENT.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByOwnerStatePast() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.PAST.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateFeature() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.FUTURE.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateWaiting() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.WAITING.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateRejected() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.REJECTED.name(), null, null));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateAlWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.ALL.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateCurrentWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.CURRENT.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerStatePastWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.PAST.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateFeatureWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.FUTURE.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateWaitingWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.WAITING.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerStateRejectedWithParams() throws Exception {
+        Assertions.assertNotNull(
+                sendRequestFindAllByOwnerWithParams(ownerId,
+                        BookingState.REJECTED.name(), 0, 20));
+    }
+
+    @Test
+    public void testFindAllByOwnerFailedNoStatus() throws Exception {
+        sendRequestFindAllByOwnerWithParamsFailed(
+                ownerId, "NO_STATUS", null, null);
+    }
+
+    @Test
+    public void testFindAllByOwnerWithParamFailedNoStatus() throws Exception {
+        sendRequestFindAllByOwnerWithParamsFailed(
+                ownerId, "NO_STATUS", 0, 20);
+    }
+
+    @Test
+    public void testFindAllByOwnerFailedNoParam() throws Exception {
+        sendRequestFindAllByOwnerWithParamsFailed(
+                ownerId, BookingState.ALL.name(), null, 1);
+    }
+
+
+    private BookingDto sendRequestGetBooking(Long bookingId, Long userId) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.add(X_SHARER_USER_ID, String.valueOf(userId));
         String url = "/bookings/" + bookingId;
@@ -97,10 +339,12 @@ public class BookingControllerTest {
     }
 
 
-    private BookingDto approveBooking(Long bookingId, Long userId, boolean approved) throws Exception {
+    private BookingDto sendRequestApproveBooking(
+            Long bookingId, Long userId, boolean approved) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.add(X_SHARER_USER_ID, String.valueOf(userId));
-        String url = "/bookings/" + bookingId + "?approved=" + Boolean.valueOf(approved).toString();
+        String url = "/bookings/" + bookingId + "?approved="
+                + Boolean.valueOf(approved).toString();
         MvcResult res = mockMvc.perform(patch(url)
                         .headers(headers)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -111,8 +355,8 @@ public class BookingControllerTest {
                         BookingDto.class);
     }
 
-    private BookingDto createBooking(BookingCreateDto bookingCreateDto,
-                                     Long userId) throws Exception {
+    private BookingDto sendRequestCreateBooking(
+            BookingCreateDto bookingCreateDto, Long userId) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.add(X_SHARER_USER_ID, String.valueOf(userId));
 
@@ -125,6 +369,99 @@ public class BookingControllerTest {
         return objectMapper
                 .readValue(res.getResponse().getContentAsString(),
                         BookingDto.class);
+    }
+
+    private List<BookingDto> sendRequestFindAllByBookerBookingWithParams(
+            Long userId, String state, Integer from, Integer size) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+
+        MultiValueMap params = TestUtil.getPageParams(from, size);
+        params.put("state", Collections.singletonList(state));
+
+        MvcResult res = mockMvc.perform(get("/bookings")
+                        .headers(headers)
+                        .params(params))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readValue(res.getResponse().getContentAsString(),
+                ArrayList.class);
+    }
+
+    private List<BookingDto> sendRequestFindAllByOwnerWithParams(
+            Long userId, String state, Integer from, Integer size) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+
+        MultiValueMap params = TestUtil.getPageParams(from, size);
+        params.put("state", Collections.singletonList(state));
+
+        MvcResult res = mockMvc.perform(get("/bookings/owner")
+                        .headers(headers)
+                        .params(params))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return objectMapper.readValue(res.getResponse().getContentAsString(),
+                ArrayList.class);
+    }
+
+    private void sendRequestCreateBookingFailed(BookingCreateDto bookingCreateDto,
+                                                Long userId) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+
+        MvcResult res = mockMvc.perform(post("/bookings")
+                        .headers(headers)
+                        .content(objectMapper.writeValueAsString(bookingCreateDto))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+    }
+
+    private void sendRequestApproveBookingFailed(
+            Long bookingId, Long userId, boolean approved) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+        String url = "/bookings/" + bookingId + "?approved="
+                + Boolean.valueOf(approved).toString();
+        MvcResult res = mockMvc.perform(patch(url)
+                        .headers(headers)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+    }
+
+    private void sendRequestFindAllByBookerBookingWithParamsFailed(
+            Long userId, String state, Integer from, Integer size) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+
+        MultiValueMap params = TestUtil.getPageParams(from, size);
+        params.put("state", Collections.singletonList(state));
+
+        MvcResult res = mockMvc.perform(get("/bookings")
+                        .headers(headers)
+                        .params(params))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
+
+    }
+
+    private void sendRequestFindAllByOwnerWithParamsFailed(
+            Long userId, String state, Integer from, Integer size) throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
+
+        MultiValueMap params = TestUtil.getPageParams(from, size);
+        params.put("state", Collections.singletonList(state));
+
+        MvcResult res = mockMvc.perform(get("/bookings/owner")
+                        .headers(headers)
+                        .params(params))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
     }
 
     private ItemDto addItem(CreateItemDto createItemDto, long userId) throws Exception {

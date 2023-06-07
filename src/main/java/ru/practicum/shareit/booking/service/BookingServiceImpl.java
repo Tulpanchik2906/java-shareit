@@ -117,7 +117,7 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        throw new RuntimeException("Не хватает параметров для формирования списка");
+        throw new ValidationException("Не хватает параметров для формирования списка");
 
     }
 
@@ -190,7 +190,7 @@ public class BookingServiceImpl implements BookingService {
                     return null;
             }
         }
-        throw new RuntimeException("Не хватает параметров для формирования списка");
+        throw new ValidationException("Не хватает параметров для формирования списка");
     }
 
     @Override

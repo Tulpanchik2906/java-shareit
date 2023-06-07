@@ -10,6 +10,7 @@ import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.util.exception.ValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -56,7 +57,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         if (from == null && size == null) {
             return setItems(itemRequestRepository.findByRequesterIdNotOrderByCreatedDesc(userId));
         } else if (from == null || size == null) {
-            throw new RuntimeException("Не хватает параметров для формирования списка");
+            throw new ValidationException("Не хватает параметров для формирования списка");
         } else {
             return setItems(itemRequestRepository
                     .findByRequesterIdNotOrderByCreatedDesc(userId, PageRequest.of(from, 1))

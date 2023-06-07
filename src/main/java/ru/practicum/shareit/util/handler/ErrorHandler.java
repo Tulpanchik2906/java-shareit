@@ -10,7 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import ru.practicum.shareit.util.exception.*;
+import ru.practicum.shareit.util.exception.NotAvailableItemException;
+import ru.practicum.shareit.util.exception.NotFoundException;
+import ru.practicum.shareit.util.exception.ValidationException;
 
 
 @ControllerAdvice
@@ -35,8 +37,7 @@ public class ErrorHandler {
         return getResponseEntity(HttpStatus.NOT_FOUND, exception);
     }
 
-    @ExceptionHandler({DuplicateEmailException.class,
-            JdbcSQLIntegrityConstraintViolationException.class})
+    @ExceptionHandler(JdbcSQLIntegrityConstraintViolationException.class)
     public ResponseEntity<String> handleDuplicateEmailException(Exception exception)
             throws JsonProcessingException {
         return getResponseEntity(HttpStatus.CONFLICT, exception);
@@ -46,12 +47,6 @@ public class ErrorHandler {
     public ResponseEntity<String> handleNotAvailableItemException(NotAvailableItemException exception)
             throws JsonProcessingException {
         return getResponseEntity(HttpStatus.BAD_REQUEST, exception);
-    }
-
-    @ExceptionHandler(ApproveBookingException.class)
-    public ResponseEntity<String> handleApproveBookingExceptionException(ApproveBookingException exception)
-            throws JsonProcessingException {
-        return getResponseEntity(HttpStatus.FORBIDDEN, exception);
     }
 
     private ResponseEntity<String> getResponseEntity(

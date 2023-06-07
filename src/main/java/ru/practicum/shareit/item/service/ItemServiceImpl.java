@@ -53,10 +53,11 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> findAllByUser(Long userId, Integer from, Integer size) {
+        userRepository.getExistUser(userId);
         if (from == null && size == null) {
             return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
         } else if (from == null || size == null) {
-            throw new RuntimeException("Не хватает параметров для формирования списка");
+            throw new ValidationException("Не хватает параметров для формирования списка");
         } else {
             return setAddParamToItemList(itemStorage
                     .findByOwnerId(userId, PageRequest.of(from, 1)), userId)
