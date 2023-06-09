@@ -42,7 +42,7 @@ public class PageUtil {
         for (int i = 0; i < startFrom; i++) {
             if (!list.isEmpty()) {
                 list.remove(0);
-            }else {
+            } else {
                 break;
             }
         }
