@@ -31,7 +31,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User create(User user) {
-        user.setEmail(user.getEmail());
         return userStorage.save(user);
     }
 
