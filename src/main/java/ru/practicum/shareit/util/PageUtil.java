@@ -39,8 +39,12 @@ public class PageUtil {
     public static List getPageListForTwoPage(
             List list, int startFrom, int size) {
         // Удалить все верхние item со страницы
-        for (int i = 0; i < Math.min(startFrom, list.size()); i++) {
-            list.remove(0);
+        for (int i = 0; i < startFrom; i++) {
+            if (!list.isEmpty()) {
+                list.remove(0);
+            }else {
+                break;
+            }
         }
 
         return (List) list.stream().limit(size).collect(Collectors.toList());
