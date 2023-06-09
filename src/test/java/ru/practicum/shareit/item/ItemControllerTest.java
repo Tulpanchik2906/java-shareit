@@ -22,6 +22,7 @@ import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.user.dto.CreateUserDto;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,6 +118,41 @@ public class ItemControllerTest {
         ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
         Assertions.assertNotNull(sendRequestGetItemById(itemDto.getId(), ownerId));
     }
+
+    @Test
+    public void testGetItemByIdWithBookingSuccess() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        UserDto userDto = sendRequestAddUser(getAllFieldsUser(
+                TestUtil.getRandomPartForEmail()));
+
+        User user = User.builder()
+                .id(userDto.getId())
+                .email(userDto.getEmail())
+                .name(userDto.getName())
+                .build();
+
+        Booking booking = Booking.builder()
+                .booker(user)
+                .build();
+
+        when(bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndEndBeforeOrderByEndDesc(
+                        any(), any(), any(), any()))
+                .thenReturn(new ArrayList<>(List.of(booking)));
+
+        when(bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndStartBeforeAndEndAfterOrderByEndDesc(
+                        any(), any(), any(), any(), any()))
+                .thenReturn(new ArrayList<>(List.of(booking)));
+
+        when(bookingRepository
+                .findByItemIdAndItemOwnerIdAndStatusAndStartAfterOrderByStartAsc(
+                        any(), any(), any(), any()))
+                .thenReturn(new ArrayList<>(List.of(booking)));
+
+        Assertions.assertNotNull(sendRequestGetItemById(itemDto.getId(), ownerId));
+    }
+
 
     @Test
     public void testGetItemByIdFailedNoExistUser() throws Exception {

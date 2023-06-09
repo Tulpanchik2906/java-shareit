@@ -30,7 +30,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     @Transactional
     public ItemRequest create(ItemRequest itemRequest, Long userId) {
-        User user = userRepository.getExistUser(userId);
+        User user = getUser(userId);
         itemRequest.setRequester(user);
         itemRequest.setCreated(LocalDateTime.now());
         return setItems(itemRequestRepository.save(itemRequest));
@@ -38,23 +38,21 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public ItemRequest get(Long requestId, Long userId) {
-        userRepository.getExistUser(userId);
-        itemRequestRepository.findById(requestId).orElseThrow(
-                () -> new NotFoundException(
-                        "Не найден запрос на вещь с id: " + requestId));
-        return setItems(itemRequestRepository.getExistItemRequest(requestId));
+        getUser(userId);
+        ItemRequest itemRequest = getItemRequestFromRepo(requestId);
+        return setItems(itemRequest);
     }
 
 
     @Override
     public List<ItemRequest> findAllByUserId(Long userId) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         return setItems(itemRequestRepository.findByRequesterIdOrderByCreatedDesc(userId));
     }
 
     @Override
     public List<ItemRequest> findAllByOffset(Long userId, Integer from, Integer size) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
 
         if (from == null && size == null) {
             return setItems(itemRequestRepository.findByRequesterIdNotOrderByCreatedDesc(userId));
@@ -95,5 +93,17 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return itemRequests.stream()
                 .map(this::setItems)
                 .collect(Collectors.toList());
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Пользователь с id: " + userId + " не найден."));
+    }
+
+    private ItemRequest getItemRequestFromRepo(Long requestId) {
+        return itemRequestRepository.findById(requestId).orElseThrow(
+                () -> new NotFoundException(
+                        "Не найден запрос на вещь с id: " + requestId));
     }
 }

@@ -12,7 +12,9 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.PageUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
@@ -37,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         // Просматривать информацию о вещи может любой пользователь
         Optional<Item> itemOpt = itemStorage.findById(itemId);
 
@@ -54,7 +56,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> findAllByUser(Long userId, Integer from, Integer size) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         if (from == null && size == null) {
             return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
         } else if (from == null || size == null) {
@@ -84,8 +86,8 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public Item create(Long userId, Long requestId, Item item) {
-        item.setOwner(userRepository.getExistUser(userId));
-        item.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+        item.setOwner(getUser(userId));
+        item.setRequest(getExistItemRequest(requestId));
 
         Item res = itemStorage.save(item);
 
@@ -112,7 +114,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (requestId != null) {
-            oldItem.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+            oldItem.setRequest(getExistItemRequest(requestId));
         }
 
         Item res = itemStorage.save(oldItem);
@@ -129,7 +131,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<Item> searchItems(Long userId, String text, Integer from, Integer size) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
@@ -164,7 +166,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public Comment addComment(Long itemId, Long userId, Comment comment) {
-        userRepository.getExistUser(userId);
+        User user = getUser(userId);
 
         List<Booking> bookings = bookingRepository
                 .findByBookerIdAndItemIdAndStatusAndStartBefore(
@@ -177,14 +179,14 @@ public class ItemServiceImpl implements ItemService {
         }
 
         Item item = getInfo(itemId, userId);
-        comment.setAuthor(userRepository.getExistUser(userId));
+        comment.setAuthor(user);
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
         return commentRepository.save(comment);
     }
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {
@@ -240,6 +242,23 @@ public class ItemServiceImpl implements ItemService {
                 .map(x -> setComments(setBookingsInfo(x, userId)))
                 .collect(Collectors.toList());
     }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Пользователь с id: " + userId + " не найден."));
+    }
+
+    private ItemRequest getExistItemRequest(Long requestId) {
+        if (requestId != null) {
+            Optional<ItemRequest> itemRequest = itemRequestRepository.findById(requestId);
+            if (itemRequest.isPresent()) {
+                return itemRequest.get();
+            }
+        }
+        return null;
+    }
+
 }
 
 

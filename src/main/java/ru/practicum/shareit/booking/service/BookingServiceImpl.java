@@ -11,8 +11,10 @@ import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
 import ru.practicum.shareit.util.PageUtil;
+import ru.practicum.shareit.util.exception.NotAvailableItemException;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -32,9 +34,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public Booking get(Long bookingId, Long userId) {
-        userRepository.getExistUser(userId);
-        bookingRepository.validateExistBooking(bookingId);
-        Booking booking = bookingRepository.findById(bookingId).get();
+        getUser(userId);
+        Booking booking = getBookingFromRepo(bookingId);
 
         boolean isNotFound =
                 (booking.getItem().getOwner().getId().compareTo(userId) != 0) &&
@@ -52,7 +53,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<Booking> findAllByBooker(
             Long userId, String bookingStateStr, Integer from, Integer size) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         BookingState bookingState = getBookingState(bookingStateStr);
         LocalDateTime now = LocalDateTime.now();
         if (from == null && size == null) {
@@ -106,7 +107,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<Booking> findAllByOwner(Long userId, String bookingStateStr,
                                         Integer from, Integer size) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         BookingState bookingState = getBookingState(bookingStateStr);
         LocalDateTime now = LocalDateTime.now();
         if (from == null && size == null) {
@@ -157,9 +158,9 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public Booking create(Booking booking, Long userId, Long itemId) {
         validateTimeBooking(booking.getStart(), booking.getEnd());
-        userRepository.getExistUser(userId);
-        Item item = itemRepository.getItem(itemId);
-        itemRepository.validateAvailable(item.getId());
+        User user = getUser(userId);
+        Item item = getItem(itemId);
+        validateAvailable(item.getId());
 
         if (item.getOwner().getId().compareTo(userId) == 0) {
             throw new NotFoundException("Владелец не может забронировать свою же вещь: " +
@@ -167,7 +168,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setItem(item);
-        booking.setBooker(userRepository.getExistUser(userId));
+        booking.setBooker(user);
         booking.setStatus(BookingStatus.WAITING);
 
         return bookingRepository.save(booking);
@@ -176,9 +177,9 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public Booking approve(Long bookingId, Long userId, boolean approved) {
-        userRepository.getExistUser(userId);
-        bookingRepository.validateExistBooking(bookingId);
-        Booking booking = bookingRepository.findById(bookingId).get();
+        getUser(userId);
+        Booking booking = getBookingFromRepo(bookingId);
+
         if (booking.getStatus() != BookingStatus.WAITING) {
             throw new ValidationException("Нельзя подтверждать бронирование" +
                     " со статусом: " + booking.getStatus());
@@ -331,5 +332,28 @@ public class BookingServiceImpl implements BookingService {
             default:
                 return null;
         }
+    }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Пользователь с id: " + userId + " не найден."));
+    }
+
+    private Item getItem(Long itemId) {
+        return itemRepository.findById(itemId).orElseThrow(
+                () -> new NotFoundException("Вещь с id: " + itemId + " не найдена."));
+    }
+
+    private void validateAvailable(Long itemId) {
+        if (!itemRepository.findById(itemId).get().getAvailable().booleanValue()) {
+            throw new NotAvailableItemException(
+                    "Вещь с id: " + itemId + " не доступна для бронирования.");
+        }
+    }
+
+    private Booking getBookingFromRepo(Long bookingId) {
+        return bookingRepository.findById(bookingId).orElseThrow(() ->
+                new NotFoundException("Бронирование с id: " + bookingId + " не найдено."));
     }
 }
