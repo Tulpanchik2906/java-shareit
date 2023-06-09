@@ -80,6 +80,24 @@ public class ItemControllerTest {
     }
 
     @Test
+    public void testGetItemListSuccessWithFrom0Size2() throws Exception {
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        Assertions.assertNotNull(sendRequestFindAllItemsByUserId(ownerId, 0, 2));
+    }
+
+    @Test
+    public void testGetItemListSuccessWithFrom10Size2() throws Exception {
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        Assertions.assertNotNull(sendRequestFindAllItemsByUserId(ownerId, 10, 2));
+    }
+
+    @Test
+    public void testGetItemListSuccessWithFrom9Size2() throws Exception {
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        Assertions.assertNotNull(sendRequestFindAllItemsByUserId(ownerId, 9, 2));
+    }
+
+    @Test
     public void testGetItemListFailedNoExistUser() throws Exception {
         sendRequestFindAllItemsByUserIdFailed(getNoExistUserId(), 1, 2);
     }
@@ -119,9 +137,71 @@ public class ItemControllerTest {
     }
 
     @Test
+    public void testGetSearchSuccessWithParam1And20() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+
+        Assertions.assertTrue(sendRequestSearchItems(
+                ownerId, 1, 20, itemDto.getName()).size() > 0);
+    }
+
+    @Test
+    public void testGetSearchSuccessWithParam1And2() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+
+        Assertions.assertTrue(sendRequestSearchItems(
+                ownerId, 1, 2, itemDto.getName()).size() > 0);
+    }
+
+    @Test
+    public void testGetSearchSuccessWithParam3And2() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+
+        Assertions.assertTrue(sendRequestSearchItems(
+                ownerId, 3, 2, itemDto.getName()).size() > 0);
+    }
+
+    @Test
+    public void testGetSearchSuccessWithParam2And2() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+
+        Assertions.assertTrue(sendRequestSearchItems(
+                ownerId, 2, 2, itemDto.getName()).size() > 0);
+    }
+
+    @Test
+    public void testGetSearchSuccessWithParam3And1() throws Exception {
+        ItemDto itemDto = sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+        sendRequestAddItem(getAllFieldsItem(), ownerId);
+
+        Assertions.assertTrue(sendRequestSearchItems(
+                ownerId, 3, 1, itemDto.getName()).size() > 0);
+    }
+
+
+    @Test
     public void testGetSearchFailedNoUser() throws Exception {
         sendRequestSearchItemsFailed(
                 getNoExistUserId(), null, null, "test text");
+    }
+
+    @Test
+    public void testGetSearchFailedNoParam() throws Exception {
+        sendRequestSearchItemsFailed(
+                getNoExistUserId(), 1, null, "test text");
     }
 
     @Test

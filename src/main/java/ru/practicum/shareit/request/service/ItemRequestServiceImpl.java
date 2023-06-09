@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.PageUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -28,8 +30,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     @Transactional
     public ItemRequest create(ItemRequest itemRequest, Long userId) {
-        userRepository.getExistUser(userId);
-        itemRequest.setRequester(userRepository.getExistUser(userId));
+        User user = userRepository.getExistUser(userId);
+        itemRequest.setRequester(user);
         itemRequest.setCreated(LocalDateTime.now());
         return setItems(itemRequestRepository.save(itemRequest));
     }
@@ -59,12 +61,27 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         } else if (from == null || size == null) {
             throw new ValidationException("Не хватает параметров для формирования списка");
         } else {
-            return setItems(itemRequestRepository
-                    .findByRequesterIdNotOrderByCreatedDesc(userId, PageRequest.of(from, 1))
-                    .stream()
-                    .limit(size)
-                    .collect(Collectors.toList())
-            );
+            if (PageUtil.isTwoSite(from, size)) {
+                // Получить номер страницы, с которой взять данные
+                int startPage = PageUtil.getStartPage(from, size);
+                // Получить данные с первой страницы
+                List<ItemRequest> list = itemRequestRepository
+                        .findByRequesterIdNotOrderByCreatedDesc(userId, PageRequest.of(startPage, size));
+                // Получить данные со второй страницы
+                list.addAll(itemRequestRepository
+                        .findByRequesterIdNotOrderByCreatedDesc(userId, PageRequest.of(startPage + 1, size)));
+                // Отсечь лишние данные сверху удалением из листа до нужного id,
+                // а потом сделать отсечение через функцию limit
+                return setItems(
+                        PageUtil.getPageListForTwoPage(
+                                list, PageUtil.getStartFrom(from, size), size));
+            } else {
+                return setItems(itemRequestRepository
+                        .findByRequesterIdNotOrderByCreatedDesc(
+                                userId, PageRequest.of(PageUtil.getStartPage(from, size), size)))
+                        .stream().limit(size)
+                        .collect(Collectors.toList());
+            }
         }
     }
 

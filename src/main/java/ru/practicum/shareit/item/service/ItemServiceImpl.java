@@ -14,6 +14,7 @@ import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.PageUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -59,10 +60,24 @@ public class ItemServiceImpl implements ItemService {
         } else if (from == null || size == null) {
             throw new ValidationException("Не хватает параметров для формирования списка");
         } else {
-            return setAddParamToItemList(itemStorage
-                    .findByOwnerId(userId, PageRequest.of(from, 1)), userId)
-                    .stream().limit(size)
-                    .collect(Collectors.toList());
+            if (PageUtil.isTwoSite(from, size)) {
+                // Получить номер страницы, с которой взять данные
+                int startPage = PageUtil.getStartPage(from, size);
+                // Получить данные с первой страницы
+                List<Item> list = itemStorage.findByOwnerId(userId, PageRequest.of(startPage, size));
+                // Получить данные со второй страницы
+                list.addAll(itemStorage.findByOwnerId(userId, PageRequest.of(startPage + 1, size)));
+                // Отсечь лишние данные сверху удалением из листа до нужного id,
+                // а потом сделать отсечение через функцию limit
+                return setAddParamToItemList(
+                        PageUtil.getPageListForTwoPage(
+                                list, PageUtil.getStartFrom(from, size), size), userId);
+            } else {
+                return setAddParamToItemList(itemStorage
+                        .findByOwnerId(userId, PageRequest.of(PageUtil.getStartPage(from, size), size))
+                        .stream().limit(size)
+                        .collect(Collectors.toList()), userId);
+            }
         }
     }
 
@@ -119,7 +134,31 @@ public class ItemServiceImpl implements ItemService {
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
         }
-        return setAddParamToItemList(itemStorage.search(text), userId);
+        if (from == null && size == null) {
+            return setAddParamToItemList(itemStorage.search(text), userId);
+        } else if (from == null || size == null) {
+            throw new ValidationException("Не хватает параметров для формирования списка");
+        } else {
+            // Если все нужные данные находятся на 2-х страницах
+            if (PageUtil.isTwoSite(from, size)) {
+                // Получить номер страницы, с которой взять данные
+                int startPage = PageUtil.getStartPage(from, size);
+                // Получить данные с первой страницы
+                List<Item> list = itemStorage.search(text, PageRequest.of(startPage, size));
+                // Получить данные со второй страницы
+                list.addAll(itemStorage.search(text, PageRequest.of(startPage + 1, size)));
+                // Отсечь лишние данные сверху удалением из листа до нужного id,
+                // а потом сделать отсечение через функцию limit
+                return setAddParamToItemList(
+                        PageUtil.getPageListForTwoPage(
+                                list, PageUtil.getStartFrom(from, size), size), userId);
+            } else {
+                return setAddParamToItemList(itemStorage
+                        .search(text, PageRequest.of(PageUtil.getStartPage(from, size), size))
+                        .stream().limit(size)
+                        .collect(Collectors.toList()), userId);
+            }
+        }
     }
 
     @Override

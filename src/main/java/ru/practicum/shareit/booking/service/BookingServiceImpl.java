@@ -12,6 +12,7 @@ import ru.practicum.shareit.booking.storage.BookingRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.ItemRepository;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.PageUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -69,9 +70,11 @@ public class BookingServiceImpl implements BookingService {
                     return bookingRepository
                             .findByBookerIdAndStartAfterOrderByStartDesc(userId, now);
                 case WAITING:
-                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
+                            userId, BookingStatus.WAITING);
                 case REJECTED:
-                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
+                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
+                            userId, BookingStatus.REJECTED);
                 default:
                     return null;
             }
@@ -80,38 +83,17 @@ public class BookingServiceImpl implements BookingService {
         if (from != null && size != null) {
             switch (bookingState) {
                 case ALL:
-                    return bookingRepository
-                            .findByBookerIdOrderByStartDesc(userId, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.ALL, userId);
                 case CURRENT:
-                    return bookingRepository
-                            .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
-                                    userId, now, now, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.CURRENT, userId);
                 case PAST:
-                    return bookingRepository
-                            .findByBookerIdAndEndBeforeOrderByStartDesc(userId, now,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.PAST, userId);
                 case FUTURE:
-                    return bookingRepository
-                            .findByBookerIdAndStartAfterOrderByStartDesc(userId, now,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.FUTURE, userId);
                 case WAITING:
-                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.WAITING, userId);
                 case REJECTED:
-                    return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByBooker(from, size, BookingState.REJECTED, userId);
                 default:
                     return null;
             }
@@ -153,39 +135,17 @@ public class BookingServiceImpl implements BookingService {
         if (from != null && size != null) {
             switch (bookingState) {
                 case ALL:
-                    return bookingRepository.findByItemOwnerIdOrderByStartDesc(
-                                    userId, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.ALL, userId);
                 case CURRENT:
-                    return bookingRepository
-                            .findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
-                                    userId, now, now,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.CURRENT, userId);
                 case PAST:
-                    return bookingRepository
-                            .findByItemOwnerIdAndEndBeforeOrderByStartDesc(userId, now,
-                                    PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.PAST, userId);
                 case FUTURE:
-                    return bookingRepository
-                            .findByItemOwnerIdAndStartAfterOrderByStartDesc(
-                                    userId, now, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.FUTURE, userId);
                 case WAITING:
-                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
-                                    userId, BookingStatus.WAITING, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.WAITING, userId);
                 case REJECTED:
-                    return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
-                                    userId, BookingStatus.REJECTED, PageRequest.of(from, 1))
-                            .stream().limit(size)
-                            .collect(Collectors.toList());
+                    return getListWithParamsByOwner(from, size, BookingState.REJECTED, userId);
                 default:
                     return null;
             }
@@ -248,6 +208,128 @@ public class BookingServiceImpl implements BookingService {
             return BookingState.valueOf(state);
         } catch (Exception exception) {
             throw new ValidationException("Unknown state: " + state);
+        }
+    }
+
+    private List getListWithParamsByBooker(
+            int from, int size, BookingState state, Long userId) {
+        // Получить номер страницы, с которой взять данные
+        int startPage = PageUtil.getStartPage(from, size);
+
+        if (PageUtil.isTwoSite(from, size)) {
+            // Получить данные с первой страницы
+            List<Booking> list = getListWithParamsByBookerByState1Page(state, userId, startPage, size);
+            // Добавить данные со второй страницы
+            list.addAll(getListWithParamsByBookerByState1Page(state, userId, startPage + 1, size));
+            // Отсечь лишние данные сверху удалением из листа до нужного id,
+            // а потом сделать отсечение через функцию limit
+            return PageUtil.getPageListForTwoPage(list,
+                    PageUtil.getStartFrom(from, size), size);
+        } else {
+            return (List) getListWithParamsByBookerByState1Page(state, userId, startPage, size)
+                    .stream().limit(size)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private List getListWithParamsByOwner(
+            int from, int size, BookingState state, Long userId) {
+        // Получить номер страницы, с которой взять данные
+        int startPage = PageUtil.getStartPage(from, size);
+
+        if (PageUtil.isTwoSite(from, size)) {
+            // Получить данные с первой страницы
+            List<Booking> list = getListWithParamsByOwnerByState1Page(state, userId, startPage, size);
+            // Добавить данные со второй страницы
+            list.addAll(getListWithParamsByOwnerByState1Page(state, userId, startPage + 1, size));
+            // Отсечь лишние данные сверху удалением из листа до нужного id,
+            // а потом сделать отсечение через функцию limit
+            return PageUtil.getPageListForTwoPage(list,
+                    PageUtil.getStartFrom(from, size), size);
+        } else {
+            return (List) getListWithParamsByOwnerByState1Page(state, userId, startPage, size)
+                    .stream().limit(size)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private List getListWithParamsByOwnerByState1Page(
+            BookingState bookingState, Long userId, int startPage, int size) {
+        LocalDateTime now = LocalDateTime.now();
+
+        switch (bookingState) {
+            case ALL:
+                // Получить данные с первой страницы
+                List<Booking> list =
+                        bookingRepository
+                                .findByItemOwnerIdOrderByStartDesc(userId, PageRequest.of(startPage, size));
+                return list;
+            case CURRENT:
+                list = bookingRepository
+                        .findByItemOwnerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                userId, now, now, PageRequest.of(startPage, size));
+                return list;
+            case PAST:
+                list = bookingRepository
+                        .findByItemOwnerIdAndEndBeforeOrderByStartDesc(
+                                userId, now, PageRequest.of(startPage, size));
+                return list;
+            case FUTURE:
+                list = bookingRepository
+                        .findByItemOwnerIdAndStartAfterOrderByStartDesc(
+                                userId, now, PageRequest.of(startPage, size));
+                return list;
+            case WAITING:
+                list = bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
+                        userId, BookingStatus.WAITING, PageRequest.of(startPage, size));
+                return list;
+            case REJECTED:
+                list = bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(
+                        userId, BookingStatus.REJECTED, PageRequest.of(startPage, size));
+                return list;
+            default:
+                return null;
+        }
+    }
+
+    private List getListWithParamsByBookerByState1Page(
+            BookingState bookingState, Long userId, int startPage, int size) {
+        LocalDateTime now = LocalDateTime.now();
+
+        switch (bookingState) {
+            case ALL:
+                // Получить данные с первой страницы
+                List<Booking> list =
+                        bookingRepository
+                                .findByBookerIdOrderByStartDesc(userId,
+                                        PageRequest.of(startPage, size));
+                return list;
+            case CURRENT:
+                list = bookingRepository
+                        .findByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(
+                                userId, now, now, PageRequest.of(startPage, size));
+                return list;
+            case PAST:
+                list = bookingRepository
+                        .findByBookerIdAndEndBeforeOrderByStartDesc(
+                                userId, now, PageRequest.of(startPage, size));
+                ;
+                return list;
+            case FUTURE:
+                list = bookingRepository
+                        .findByBookerIdAndStartAfterOrderByStartDesc(
+                                userId, now, PageRequest.of(startPage, size));
+                return list;
+            case WAITING:
+                list = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
+                        userId, BookingStatus.WAITING, PageRequest.of(startPage, size));
+                return list;
+            case REJECTED:
+                list = bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
+                        userId, BookingStatus.REJECTED, PageRequest.of(startPage, size));
+                return list;
+            default:
+                return null;
         }
     }
 }

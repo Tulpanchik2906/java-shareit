@@ -1,4 +1,4 @@
-package ru.practicum.shareit.request;
+package ru.practicum.shareit.request.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase
-public class RequestControllerTest {
+public class ItemRequestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -110,13 +110,52 @@ public class RequestControllerTest {
     }
 
     @Test
-    public void testGetFindAllWithParamRequestSuccessWithParams() throws Exception {
+    public void testGetFindAllRequestSuccess1PageFromLessSize() throws Exception {
         Long userId = sendRequestAddUser(getAllFieldsUser(
                 TestUtil.getRandomPartForEmail())).getId();
         sendRequestAddRequest(getDefaultRequest(), ownerId);
         Assertions.assertTrue(
                 sendRequestFindAllWithParamRequest(
                         userId, 0, 20).size() > 0);
+    }
+
+    @Test
+    public void testGetFindAllRequestSuccess2PageFromLessSize() throws Exception {
+        Long userId = sendRequestAddUser(getAllFieldsUser(
+                TestUtil.getRandomPartForEmail())).getId();
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        Assertions.assertTrue(
+                sendRequestFindAllWithParamRequest(
+                        userId, 2, 20).size() > 0);
+    }
+
+    @Test
+    public void testGetFindAllRequestSuccess2PageFromMoreSize() throws Exception {
+        Long userId = sendRequestAddUser(getAllFieldsUser(
+                TestUtil.getRandomPartForEmail())).getId();
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        Assertions.assertTrue(
+                sendRequestFindAllWithParamRequest(
+                        userId, 3, 2).size() > 0);
+    }
+
+    @Test
+    public void testGetFindAllRequestSuccess1PageFromMoreSize() throws Exception {
+        Long userId = sendRequestAddUser(getAllFieldsUser(
+                TestUtil.getRandomPartForEmail())).getId();
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        sendRequestAddRequest(getDefaultRequest(), ownerId);
+        Assertions.assertTrue(
+                sendRequestFindAllWithParamRequest(
+                        userId, 2, 2).size() > 0);
     }
 
     @Test
