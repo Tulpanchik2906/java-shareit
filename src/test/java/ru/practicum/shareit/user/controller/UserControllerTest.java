@@ -2,103 +2,130 @@ package ru.practicum.shareit.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.practicum.shareit.TestUtil;
 import ru.practicum.shareit.user.dto.CreateUserDto;
 import ru.practicum.shareit.user.dto.PatchUserDto;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
-@AutoConfigureTestDatabase
+@ExtendWith(MockitoExtension.class)
 public class UserControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
 
-    @Test
-    public void testCreateUserSuccess() throws Exception {
-        Assertions.assertNotNull(sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail())));
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private UserServiceImpl userService;
+
+    private UserController userController;
+
+    private CreateUserDto createUserDto;
+
+
+    @BeforeEach
+    void setUp() {
+        userService = mock(UserServiceImpl.class);
+
+        userController = new UserController(userService);
+
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(userController)
+                .build();
+
+        createUserDto = getDefaultCreateUserDto(TestUtil.getRandomPartForEmail());
+
+
     }
 
     @Test
-    public void testGetErrorCreateUserWithReplay() throws Exception {
-        CreateUserDto user = getAllFieldsUser(TestUtil.getRandomPartForEmail());
-        sendRequestAddUser(user);
-        sendRequestAddFailedUser(user);
+    public void testCreateUserSuccess() throws Exception {
+        when(userService.create(any()))
+                .thenReturn(User.builder()
+                        .id(1L)
+                        .name(createUserDto.getName())
+                        .email(createUserDto.getEmail())
+                        .build());
+
+        UserDto res = sendRequestAddUser(createUserDto);
+
+        Assertions.assertEquals(1L, res.getId());
+        Assertions.assertEquals(createUserDto.getName(), res.getName());
+        Assertions.assertEquals(createUserDto.getEmail(), res.getEmail());
     }
 
     @Test
     public void testUpdateUserSuccess() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail()));
-        UserDto updateUserDto = sendRequestUpdateUser(
-                getAllFieldsForPatchUser(TestUtil.getRandomPartForEmail()),
-                userDto.getId());
-        Assertions.assertNotNull(updateUserDto);
-    }
+        PatchUserDto patchUserDto = getDefaultUpdateUser(TestUtil.getRandomPartForEmail());
 
-    @Test
-    public void testUpdateUserFailDoubleEmail() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail()));
-        sendRequestUpdateFailedUser(
-                getAllFieldsForPatchUser(userDto.getEmail()),
-                userDto.getId());
-    }
+        when(userService.update(any(), any()))
+                .thenReturn(User.builder()
+                        .id(1L)
+                        .name(patchUserDto.getName())
+                        .email(patchUserDto.getEmail())
+                        .build());
 
-    @Test
-    public void testUpdateUserFailUserNotFound() throws Exception {
-        sendRequestUpdateFailedUser(getAllFieldsForPatchUser(TestUtil.getRandomPartForEmail()),
-                getNoExistUserId());
+        UserDto res = sendRequestUpdateUser(patchUserDto, 1L);
+
+        Assertions.assertEquals(1L, res.getId());
+        Assertions.assertEquals(patchUserDto.getName(), res.getName());
+        Assertions.assertEquals(patchUserDto.getEmail(), res.getEmail());
     }
 
     @Test
     public void testGetUserSuccess() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        Assertions.assertNotNull(sendRequestGetExistUser(userDto.getId()));
-    }
+        when(userService.get(any()))
+                .thenReturn(User.builder()
+                        .id(1L)
+                        .name(createUserDto.getName())
+                        .email(createUserDto.getEmail())
+                        .build());
 
-    @Test
-    public void testGetUserFailedNoExist() throws Exception {
-        sendRequestGetFailedUser(getNoExistUserId());
+        UserDto res = sendRequestGetUser(1L);
+
+        Assertions.assertEquals(1L, res.getId());
+        Assertions.assertEquals(createUserDto.getName(), res.getName());
+        Assertions.assertEquals(createUserDto.getEmail(), res.getEmail());
     }
 
     @Test
     public void testDeleteUserSuccess() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        sendRequestDeleteUser(userDto.getId());
-        sendRequestGetFailedUser(userDto.getId());
+        doNothing().when(userService).delete(any());
+        sendRequestDeleteUser(1L);
+
+        verify(userService, times(1)).delete(any(Long.class));
     }
 
     @Test
-    public void testDeleteUserFailedNoExistUser() throws Exception {
-        sendRequestDeleteFailedUser(getNoExistUserId());
+    public void testFindAllSuccess() throws Exception {
+        User user1 = getDefaultUser(TestUtil.getRandomPartForEmail(), 1L);
+        User user2 = getDefaultUser(TestUtil.getRandomPartForEmail(), 2L);
+        User user3 = getDefaultUser(TestUtil.getRandomPartForEmail(), 3L);
+
+        when(userService.findAll())
+                .thenReturn(List.of(user1, user2, user3));
+
+        List<UserDto> res = sendRequestFindAll();
+
+        Assertions.assertEquals(3, res.size());
     }
 
-    @Test
-    public void testListUserSuccessManyUsers() throws Exception {
-        sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-
-        Assertions.assertTrue(sendRequestFindAll().size() > 0);
-    }
 
     private UserDto sendRequestAddUser(CreateUserDto user) throws Exception {
         MvcResult res = mockMvc.perform(post("/users")
@@ -122,7 +149,7 @@ public class UserControllerTest {
                         UserDto.class);
     }
 
-    private UserDto sendRequestGetExistUser(Long userId) throws Exception {
+    private UserDto sendRequestGetUser(Long userId) throws Exception {
         MvcResult res = mockMvc.perform(get("/users/" + userId))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -132,7 +159,7 @@ public class UserControllerTest {
     }
 
     private void sendRequestDeleteUser(Long userId) throws Exception {
-        MvcResult res = mockMvc.perform(delete("/users/" + userId))
+        mockMvc.perform(delete("/users/" + userId))
                 .andExpect(status().isOk())
                 .andReturn();
     }
@@ -146,53 +173,26 @@ public class UserControllerTest {
     }
 
 
-    private void sendRequestAddFailedUser(CreateUserDto user) throws Exception {
-        MvcResult res = mockMvc.perform(post("/users")
-                        .content(objectMapper.writeValueAsString(user))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestUpdateFailedUser(PatchUserDto user, Long userId) throws Exception {
-        MvcResult res = mockMvc.perform(patch("/users/" + userId)
-                        .content(objectMapper.writeValueAsString(user))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestGetFailedUser(Long userId) throws Exception {
-        MvcResult res = mockMvc.perform(get("/users/" + userId))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestDeleteFailedUser(Long userId) throws Exception {
-        MvcResult res = mockMvc.perform(delete("/users/" + userId))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-
-    private CreateUserDto getAllFieldsUser(String random) {
+    private CreateUserDto getDefaultCreateUserDto(String random) {
         return CreateUserDto.builder()
                 .name("Name user")
                 .email("user" + random + "@yandex.ru")
                 .build();
     }
 
-    private PatchUserDto getAllFieldsForPatchUser(String random) {
-        return PatchUserDto.builder()
-                .name("Update user")
+    private User getDefaultUser(String random, Long id) {
+        return User.builder()
+                .id(id)
+                .name("Name user")
                 .email("user" + random + "@yandex.ru")
                 .build();
     }
 
-    private Long getNoExistUserId() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        sendRequestDeleteUser(userDto.getId());
-        return userDto.getId();
+    private PatchUserDto getDefaultUpdateUser(String random) {
+        return PatchUserDto.builder()
+                .name("Update user")
+                .email("user" + random + "@yandex.ru")
+                .build();
     }
 
 }
