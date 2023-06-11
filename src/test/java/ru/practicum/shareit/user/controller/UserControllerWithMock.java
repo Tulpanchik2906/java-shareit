@@ -2,74 +2,66 @@ package ru.practicum.shareit.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.practicum.shareit.TestUtil;
 import ru.practicum.shareit.user.dto.CreateUserDto;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
-@AutoConfigureTestDatabase
+@ExtendWith(MockitoExtension.class)
 public class UserControllerWithMock {
 
-    @Autowired
+
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
 
-    @Mock
-    private UserService userService;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
-    /*
+    private UserServiceImpl userService;
+
+    private UserController userController;
+
     @BeforeEach
-    public void beforeEach() {
-        when(userService.create(any()))
-                .thenReturn(User.builder()
-                        .id(1L)
-                        .name("Name user")
-                        .email("user1@yandex.ru")
-                        .build());
-        when(userService.update(1L, any()))
-                .thenReturn(User.builder()
-                        .id(1L)
-                        .name("Update user")
-                        .email("userUpdate1@yandex.ru")
-                        .build());
+    void setUp() {
+        userService = mock(UserServiceImpl.class);
 
-    }*/
+        userController = new UserController(userService);
 
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(userController)
+                .build();
+
+    }
 
     @Test
     public void testCreateUserSuccess() throws Exception {
+        CreateUserDto createUserDto = getDefaultCreateUserDto(TestUtil.getRandomPartForEmail());
+
         when(userService.create(any()))
                 .thenReturn(User.builder()
                         .id(1L)
-                        .name("Name user")
-                        .email("user1@yandex.ru")
+                        .name(createUserDto.getName())
+                        .email(createUserDto.getEmail())
                         .build());
-        sendRequestAddUser(
-                getDefaultCreateUserDto(TestUtil.getRandomPartForEmail()));
-        UserDto res = sendRequestAddUser(
-                getDefaultCreateUserDto(TestUtil.getRandomPartForEmail()));
 
-        //Assertions.assertEquals(1L, res.getId());
-        Assertions.assertEquals("Name user", res.getName());
-       // Assertions.assertEquals("user1@yandex.ru", res.getEmail());
+        UserDto res = sendRequestAddUser(createUserDto);
+
+        Assertions.assertEquals(1L, res.getId());
+        Assertions.assertEquals(createUserDto.getName(), res.getName());
+        Assertions.assertEquals(createUserDto.getEmail(), res.getEmail());
     }
 
     private UserDto sendRequestAddUser(CreateUserDto user) throws Exception {
