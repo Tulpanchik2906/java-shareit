@@ -392,7 +392,7 @@ public class ItemControllerTest {
 
         MvcResult res = mockMvc.perform(delete("/items/" + itemId)
                         .headers(headers))
-                // .andExpect(status().isOk())
+                //.andExpect(status().isOk())
                 .andReturn();
     }
 
