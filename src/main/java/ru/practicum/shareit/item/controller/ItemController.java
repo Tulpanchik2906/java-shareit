@@ -34,7 +34,7 @@ public class ItemController {
         log.info("Получен запрос на получение всего списка вещей пользователя {}.",
                 userId);
 
-        return itemService.findAllByUser(userId, from, size).stream()
+        return itemService.findAllByOwner(userId, from, size).stream()
                 .map(item -> ItemMapper.toItemDto(item))
                 .collect(Collectors.toList());
     }

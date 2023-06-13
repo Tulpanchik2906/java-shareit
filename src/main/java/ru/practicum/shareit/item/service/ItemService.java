@@ -8,7 +8,7 @@ import java.util.List;
 public interface ItemService {
     Item getInfo(Long itemId, Long userId);
 
-    List<Item> findAllByUser(Long userId, Integer from, Integer size);
+    List<Item> findAllByOwner(Long userId, Integer from, Integer size);
 
     Item create(Long userId, Long requestId, Item item);
 

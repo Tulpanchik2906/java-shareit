@@ -1,4 +1,4 @@
-package ru.practicum.shareit.item;
+package ru.practicum.shareit.item.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -17,7 +17,6 @@ import org.springframework.util.MultiValueMap;
 import ru.practicum.shareit.TestUtil;
 import ru.practicum.shareit.booking.enums.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.item.controller.ItemController;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
@@ -36,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-public class ItemControllerWithMock {
+public class ItemControllerTest {
     private MockMvc mockMvc;
 
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -65,7 +64,7 @@ public class ItemControllerWithMock {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         user = getDefaultUser(TestUtil.getRandomPartForEmail(), 5L);
-        itemRequest = getDefaultRequest(8L);
+        itemRequest = getDefaultRequest(8L, getDefaultUser(TestUtil.getRandomPartForEmail(), 12L));
         item = getDefaultItem();
     }
 
@@ -106,7 +105,7 @@ public class ItemControllerWithMock {
     public void testFindAllSuccess() throws Exception {
         item = addBookingsAndComments(item);
 
-        when(itemService.findAllByUser(any(), any(), any()))
+        when(itemService.findAllByOwner(any(), any(), any()))
                 .thenReturn(List.of(item, item, item));
 
         List<ItemDto> res = sendRequestFindAllItemsByUserId(
@@ -275,13 +274,6 @@ public class ItemControllerWithMock {
                 .build();
     }
 
-    private User getDefaultUser(String random, Long id) {
-        return User.builder()
-                .id(id)
-                .name("Name user")
-                .email("user" + random + "@yandex.ru")
-                .build();
-    }
 
     private Booking getDefaultBooking(User user, Long id) {
         return Booking.builder()
@@ -302,10 +294,12 @@ public class ItemControllerWithMock {
                 .build();
     }
 
-    private ItemRequest getDefaultRequest(Long id) {
+    private ItemRequest getDefaultRequest(Long id, User user) {
         return ItemRequest.builder()
                 .id(id)
                 .description("Новый запрос на вещь.")
+                .requester(user)
+                .created(LocalDateTime.now())
                 .build();
     }
 
@@ -335,5 +329,13 @@ public class ItemControllerWithMock {
 
         item.setComments(comments);
         return item;
+    }
+
+    private User getDefaultUser(String random, Long id) {
+        return User.builder()
+                .id(id)
+                .name("Name user")
+                .email("user" + random + "@yandex.ru")
+                .build();
     }
 }

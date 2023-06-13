@@ -76,7 +76,7 @@ public class UserServiceTest {
     @Test
     public void testUpdateUserFailedNoUser() {
         Assertions.assertThrows(NotFoundException.class,
-                () -> userService.update(-1L,
+                () -> userService.update(1L,
                         getDefaultUpdateUser(TestUtil.getRandomPartForEmail())));
     }
 
@@ -156,7 +156,7 @@ public class UserServiceTest {
     @Test
     public void testGetUserFailedNoUser() {
         Assertions.assertThrows(NotFoundException.class,
-                () -> userService.get(-1L));
+                () -> userService.get(1L));
     }
 
     /*

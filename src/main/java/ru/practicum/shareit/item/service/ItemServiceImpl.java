@@ -44,8 +44,6 @@ public class ItemServiceImpl implements ItemService {
         Optional<Item> itemOpt = itemStorage.findById(itemId);
 
         if (!itemOpt.isPresent()) {
-            log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
-
             throw new NotFoundException("Вещь с id: " + itemId +
                     " не найдена для пользователя:" + userId + ".");
 
@@ -55,7 +53,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> findAllByUser(Long userId, Integer from, Integer size) {
+    public List<Item> findAllByOwner(Long userId, Integer from, Integer size) {
         getUser(userId);
         if (from == null && size == null) {
             return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
@@ -87,7 +85,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public Item create(Long userId, Long requestId, Item item) {
         item.setOwner(getUser(userId));
-        item.setRequest(getExistItemRequest(requestId));
+        item.setRequest(getItemRequest(requestId));
 
         Item res = itemStorage.save(item);
 
@@ -114,7 +112,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (requestId != null) {
-            oldItem.setRequest(getExistItemRequest(requestId));
+            oldItem.setRequest(getItemRequest(requestId));
         }
 
         Item res = itemStorage.save(oldItem);
@@ -167,6 +165,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public Comment addComment(Long itemId, Long userId, Comment comment) {
         User user = getUser(userId);
+        Item item = getInfo(itemId, userId);
 
         List<Booking> bookings = bookingRepository
                 .findByBookerIdAndItemIdAndStatusAndStartBefore(
@@ -178,7 +177,6 @@ public class ItemServiceImpl implements ItemService {
                             " к вещи с id: " + itemId);
         }
 
-        Item item = getInfo(itemId, userId);
         comment.setAuthor(user);
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
@@ -190,8 +188,6 @@ public class ItemServiceImpl implements ItemService {
         List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {
-            log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
-
             throw new NotFoundException("Вещь с id: " + itemId +
                     " не найдена для пользователя:" + userId + ".");
 
@@ -249,11 +245,13 @@ public class ItemServiceImpl implements ItemService {
                         "Пользователь с id: " + userId + " не найден."));
     }
 
-    private ItemRequest getExistItemRequest(Long requestId) {
+    private ItemRequest getItemRequest(Long requestId) {
         if (requestId != null) {
             Optional<ItemRequest> itemRequest = itemRequestRepository.findById(requestId);
             if (itemRequest.isPresent()) {
                 return itemRequest.get();
+            } else {
+                throw new NotFoundException("Не найден запрос с id:" + requestId);
             }
         }
         return null;
