@@ -225,7 +225,7 @@ public class ItemServiceTest {
         ItemRequest itemRequest = addItemRequest(requester);
         Item itemCreate = itemService.create(owner.getId(), itemRequest.getId(), item);
         Booking lastBooking = bookingRepository.save(
-                getDefaultBooking(itemCreate, booker, LocalDateTime.now().minusDays(1000)));
+                getDefaultBooking(itemCreate, booker, LocalDateTime.now().minusDays(100)));
 
 
         Item itemRes = itemService.getInfo(itemCreate.getId(), owner.getId());
@@ -579,7 +579,7 @@ public class ItemServiceTest {
     private Booking getDefaultBooking(Item item, User booker, LocalDateTime start) {
         return Booking.builder()
                 .start(start)
-                .end(LocalDateTime.now().plusDays(10))
+                .end(start.plusDays(10))
                 .item(item)
                 .booker(booker)
                 .status(BookingStatus.APPROVED)

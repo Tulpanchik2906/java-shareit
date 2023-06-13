@@ -76,8 +76,6 @@ public class BookingServiceImpl implements BookingService {
                 case REJECTED:
                     return bookingRepository.findByBookerIdAndStatusOrderByStartDesc(
                             userId, BookingStatus.REJECTED);
-                default:
-                    return null;
             }
         }
 
@@ -95,8 +93,6 @@ public class BookingServiceImpl implements BookingService {
                     return getListWithParamsByBooker(from, size, BookingState.WAITING, userId);
                 case REJECTED:
                     return getListWithParamsByBooker(from, size, BookingState.REJECTED, userId);
-                default:
-                    return null;
             }
         }
 
@@ -128,8 +124,6 @@ public class BookingServiceImpl implements BookingService {
                     return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.WAITING);
                 case REJECTED:
                     return bookingRepository.findByItemOwnerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
-                default:
-                    return null;
             }
         }
 
@@ -147,8 +141,6 @@ public class BookingServiceImpl implements BookingService {
                     return getListWithParamsByOwner(from, size, BookingState.WAITING, userId);
                 case REJECTED:
                     return getListWithParamsByOwner(from, size, BookingState.REJECTED, userId);
-                default:
-                    return null;
             }
         }
         throw new ValidationException("Не хватает параметров для формирования списка");
