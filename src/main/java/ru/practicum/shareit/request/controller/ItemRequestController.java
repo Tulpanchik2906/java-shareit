@@ -48,7 +48,7 @@ public class ItemRequestController {
     public List<ItemRequestDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId) {
         log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
 
-        return itemRequestService.findAllByUserId(userId).stream()
+        return itemRequestService.findAllByRequesterId(userId).stream()
                 .map(x -> RequestMapper.toItemRequestDto(x))
                 .collect(Collectors.toList());
     }

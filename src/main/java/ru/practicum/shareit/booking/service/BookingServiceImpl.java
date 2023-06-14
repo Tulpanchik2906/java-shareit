@@ -39,8 +39,7 @@ public class BookingServiceImpl implements BookingService {
 
         boolean isNotFound =
                 (booking.getItem().getOwner().getId().compareTo(userId) != 0) &&
-                        ((booking.getBooker() == null) ||
-                                (booking.getBooker().getId().compareTo(userId) != 0));
+                        (booking.getBooker().getId().compareTo(userId) != 0);
 
         if (isNotFound) {
             throw new NotFoundException("Пользователь с id: " + userId

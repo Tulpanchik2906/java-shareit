@@ -1,171 +1,132 @@
 package ru.practicum.shareit.request.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ru.practicum.shareit.TestUtil;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.CreateItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
-import ru.practicum.shareit.user.dto.CreateUserDto;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
+import ru.practicum.shareit.user.model.User;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
-@AutoConfigureTestDatabase
+@ExtendWith(MockitoExtension.class)
 public class ItemRequestControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
 
-    private Long ownerId;
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private ItemRequestServiceImpl itemRequestService;
+
+    private ItemRequestController itemRequestServiceController;
 
     private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        ownerId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-    }
+    private User requester;
 
+    @BeforeEach
+    void setUp() {
+        itemRequestService = mock(ItemRequestServiceImpl.class);
+
+        itemRequestServiceController = new ItemRequestController(itemRequestService);
+
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(itemRequestServiceController)
+                .build();
+
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        requester = getDefaultUser("lala", 5L);
+
+    }
 
     @Test
     public void testCreateRequestSuccess() throws Exception {
-        Assertions.assertNotNull(
-                sendRequestAddRequest(getDefaultRequest(), ownerId));
-    }
+        when(itemRequestService.create(any(), any()))
+                .thenReturn(getDefaultRequest(4L, requester, Collections.EMPTY_LIST));
 
-    @Test
-    public void testCreateRequestFailedNoUser() throws Exception {
-        sendRequestAddRequestFailed(getDefaultRequest(), getNoExistUserId());
+        ItemRequestDto itemRequestDto = sendRequestAddRequest(
+                getDefaultCreateItemRequestDto(), requester.getId());
+
+        Assertions.assertNotNull(itemRequestDto);
     }
 
     @Test
     public void testGetRequestSuccess() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        ItemRequestDto itemRequestDto =
-                sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertNotNull(sendRequestGetRequest(
-                itemRequestDto.getId(), userId));
+        ItemRequest itemRequest = getDefaultRequest(4L, requester, Collections.EMPTY_LIST);
+        User user = getDefaultUser("lala", 6L);
+        Item item1 = getDefaultItem(9L, user);
+        item1.setRequest(itemRequest);
+        Item item2 = getDefaultItem(10L, user);
+        item2.setRequest(itemRequest);
 
+        List<Item> items = List.of(item1, item2);
+
+        when(itemRequestService.get(any(), any()))
+                .thenReturn(getDefaultRequest(4L, requester, items));
+
+        ItemRequestDto itemRequestDto = sendRequestGetRequest(4L, requester.getId());
+
+        Assertions.assertNotNull(itemRequestDto);
     }
 
     @Test
-    public void testGetRequestFailedNoExistUser() throws Exception {
-        Long userId = getNoExistUserId();
-        ItemRequestDto itemRequestDto =
-                sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestGetRequestFailed(itemRequestDto.getId(), userId);
+    public void testFindAllRequestSuccess() throws Exception {
+        ItemRequest itemRequest1 = getDefaultRequest(4L, requester, Collections.EMPTY_LIST);
+        ItemRequest itemRequest2 = getDefaultRequest(4L, requester, Collections.EMPTY_LIST);
+
+        List<ItemRequest> mockRequests = List.of(itemRequest1, itemRequest2);
+
+
+        when(itemRequestService.findAllByRequesterId(any()))
+                .thenReturn(mockRequests);
+
+        List<ItemRequestDto> itemRequests = sendRequestFindAllRequest(requester.getId());
+
+        Assertions.assertEquals(2, itemRequests.size());
     }
 
     @Test
-    public void testGetFindAllRequestSuccess() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllRequest(ownerId).size() > 0);
-    }
+    public void testFindAllRequestWithParamsSuccess() throws Exception {
+        ItemRequest itemRequest1 = getDefaultRequest(4L, requester, Collections.EMPTY_LIST);
+        ItemRequest itemRequest2 = getDefaultRequest(4L, requester, Collections.EMPTY_LIST);
 
-    @Test
-    public void testGetFindAllRequestSuccessAnotherUser() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllRequest(userId).isEmpty());
-    }
+        List<ItemRequest> mockRequests = List.of(itemRequest1, itemRequest2);
 
-    @Test
-    public void testGetFindAllRequestFailedNoUser() throws Exception {
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestFindAllRequestFailed(getNoExistUserId());
-    }
 
-    @Test
-    public void testGetFindAllWithParamRequestSuccessWithOutParams() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllWithParamRequest(
-                        userId, null, null).size() > 0);
-    }
+        when(itemRequestService.findAllByOffset(any(), any(), any()))
+                .thenReturn(mockRequests);
 
-    @Test
-    public void testGetFindAllRequestSuccess1PageFromLessSize() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllWithParamRequest(
-                        userId, 0, 20).size() > 0);
-    }
+        List<ItemRequestDto> itemRequests = sendRequestFindAllWithParamsRequest(
+                requester.getId(), 1, 2);
 
-    @Test
-    public void testGetFindAllRequestSuccess2PageFromLessSize() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllWithParamRequest(
-                        userId, 2, 20).size() > 0);
+        Assertions.assertEquals(2, itemRequests.size());
     }
-
-    @Test
-    public void testGetFindAllRequestSuccess2PageFromMoreSize() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllWithParamRequest(
-                        userId, 3, 2).size() > 0);
-    }
-
-    @Test
-    public void testGetFindAllRequestSuccess1PageFromMoreSize() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        Assertions.assertTrue(
-                sendRequestFindAllWithParamRequest(
-                        userId, 2, 2).size() > 0);
-    }
-
-    @Test
-    public void testGetFindAllWithParamRequestFailedOneParam() throws Exception {
-        Long userId = sendRequestAddUser(getAllFieldsUser(
-                TestUtil.getRandomPartForEmail())).getId();
-        sendRequestAddRequest(getDefaultRequest(), ownerId);
-        sendRequestFindAllWithParamRequestFailed(userId, null, 10);
-    }
-
 
     private ItemRequestDto sendRequestAddRequest(
             CreateItemRequestDto req, Long userId) throws Exception {
@@ -209,7 +170,7 @@ public class ItemRequestControllerTest {
                 ArrayList.class);
     }
 
-    private List<ItemRequestDto> sendRequestFindAllWithParamRequest(
+    private List<ItemRequestDto> sendRequestFindAllWithParamsRequest(
             Long userId, Integer from, Integer size) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.add(X_SHARER_USER_ID, String.valueOf(userId));
@@ -223,85 +184,38 @@ public class ItemRequestControllerTest {
                 ArrayList.class);
     }
 
-    private void sendRequestAddRequestFailed(
-            CreateItemRequestDto req, Long userId) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
-
-        MvcResult res = mockMvc.perform(post("/requests")
-                        .content(objectMapper.writeValueAsString(req))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .headers(headers))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestGetRequestFailed(
-            Long reqId, Long userId) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
-
-        MvcResult res = mockMvc.perform(get("/requests/" + reqId)
-                        .headers(headers))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestFindAllRequestFailed(Long userId) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
-
-        MvcResult res = mockMvc.perform(get("/requests")
-                        .headers(headers))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private void sendRequestFindAllWithParamRequestFailed(
-            Long userId, Integer from, Integer size) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(X_SHARER_USER_ID, String.valueOf(userId));
-
-        MvcResult res = mockMvc.perform(get("/requests/all")
-                        .params(TestUtil.getPageParams(from, size))
-                        .headers(headers))
-                .andExpect(status().is4xxClientError())
-                .andReturn();
-    }
-
-    private CreateItemRequestDto getDefaultRequest() {
+    private CreateItemRequestDto getDefaultCreateItemRequestDto() {
         return CreateItemRequestDto.builder()
                 .description("Новый запрос на вещь.")
                 .build();
     }
 
-    private UserDto sendRequestAddUser(CreateUserDto user) throws Exception {
-        MvcResult res = mockMvc.perform(post("/users")
-                        .content(objectMapper.writeValueAsString(user))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andReturn();
-        return objectMapper
-                .readValue(res.getResponse().getContentAsString(),
-                        UserDto.class);
-    }
-
-    private void sendRequestDeleteUser(Long userId) throws Exception {
-        MvcResult res = mockMvc.perform(delete("/users/" + userId))
-                .andExpect(status().isOk())
-                .andReturn();
-    }
-
-    private CreateUserDto getAllFieldsUser(String random) {
-        return CreateUserDto.builder()
+    private User getDefaultUser(String random, Long id) {
+        return User.builder()
+                .id(id)
                 .name("Name user")
                 .email("user" + random + "@yandex.ru")
                 .build();
     }
 
-    private Long getNoExistUserId() throws Exception {
-        UserDto userDto = sendRequestAddUser(getAllFieldsUser(TestUtil.getRandomPartForEmail()));
-        sendRequestDeleteUser(userDto.getId());
-        return userDto.getId();
+    private ItemRequest getDefaultRequest(Long id, User requester, List<Item> items) {
+        return ItemRequest.builder()
+                .id(id)
+                .description("Новый запрос на вещь.")
+                .requester(requester)
+                .items(items)
+                .created(LocalDateTime.now())
+                .build();
+    }
+
+    private Item getDefaultItem(Long itemId, User owner) {
+        return Item.builder()
+                .id(itemId)
+                .owner(owner)
+                .available(true)
+                .name("Item name")
+                .description("Item description")
+                .comments(Collections.EMPTY_LIST)
+                .build();
     }
 }

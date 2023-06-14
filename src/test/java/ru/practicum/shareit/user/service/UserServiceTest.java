@@ -177,6 +177,25 @@ public class UserServiceTest {
         Assertions.assertEquals(3, userService.findAll().size());
     }
 
+    /*
+        Тесты на метод public void delete(Long id)
+     */
+
+    @Test
+    public void testDeleteUserSuccess() {
+        User user = getDefaultUser(TestUtil.getRandomPartForEmail());
+        User userSaved = userService.create(user);
+
+        userService.delete(userSaved.getId());
+        Assertions.assertThrows(NotFoundException.class,
+                () -> userService.get(userSaved.getId()));
+    }
+
+    @Test
+    public void testDeleteUserFailedNoUser() {
+        Assertions.assertThrows(NotFoundException.class,
+                () -> userService.delete(1L));
+    }
 
     private User getDefaultUser(String random) {
         return User.builder()

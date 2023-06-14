@@ -45,7 +45,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
 
     @Override
-    public List<ItemRequest> findAllByUserId(Long userId) {
+    public List<ItemRequest> findAllByRequesterId(Long userId) {
         getUser(userId);
         return setItems(itemRequestRepository.findByRequesterIdOrderByCreatedDesc(userId));
     }

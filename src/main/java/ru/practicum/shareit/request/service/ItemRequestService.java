@@ -9,7 +9,7 @@ public interface ItemRequestService {
 
     ItemRequest get(Long requestId, Long userId);
 
-    List<ItemRequest> findAllByUserId(Long userId);
+    List<ItemRequest> findAllByRequesterId(Long userId);
 
     List<ItemRequest> findAllByOffset(Long userId, Integer from, Integer size);
 }
