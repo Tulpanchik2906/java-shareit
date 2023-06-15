@@ -42,20 +42,6 @@ public class ItemRepositoryTest {
                 PageRequest.of(0, 3)).size());
     }
 
-    private void preSearchNameTest() {
-        User user = addUser();
-
-        Item item1 = getDefaultItem(user);
-        Item item2 = getDefaultItem(user);
-        Item item3 = getDefaultItem(user);
-
-        item1.setName("Lala");
-
-        itemRepository.save(item1);
-        itemRepository.save(item2);
-        itemRepository.save(item3);
-    }
-
     @Test
     public void testSearchDescriptionWithOutPageable() {
         preSearchDescriptionTest();
@@ -90,6 +76,20 @@ public class ItemRepositoryTest {
         preTestSearchAvailable();
 
         Assertions.assertEquals(2, itemRepository.search("description").size());
+    }
+
+    private void preSearchNameTest() {
+        User user = addUser();
+
+        Item item1 = getDefaultItem(user);
+        Item item2 = getDefaultItem(user);
+        Item item3 = getDefaultItem(user);
+
+        item1.setName("Lala");
+
+        itemRepository.save(item1);
+        itemRepository.save(item2);
+        itemRepository.save(item3);
     }
 
     private void preTestSearchAvailable() {

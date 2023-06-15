@@ -246,15 +246,12 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private ItemRequest getItemRequest(Long requestId) {
-        if (requestId != null) {
-            Optional<ItemRequest> itemRequest = itemRequestRepository.findById(requestId);
-            if (itemRequest.isPresent()) {
-                return itemRequest.get();
-            } else {
-                throw new NotFoundException("Не найден запрос с id:" + requestId);
-            }
+        if (requestId == null) {
+            return null;
+        } else {
+            return itemRequestRepository.findById(requestId).orElseThrow(() ->
+                    new NotFoundException("Не найден запрос с id:" + requestId));
         }
-        return null;
     }
 
 }
