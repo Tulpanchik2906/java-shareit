@@ -2,6 +2,7 @@ package ru.practicum.shareit.request.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.request.dto.CreateItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
@@ -9,7 +10,8 @@ import ru.practicum.shareit.request.mapper.RequestMapper;
 import ru.practicum.shareit.request.service.ItemRequestService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Min;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 @RequestMapping(path = "/requests")
 @Slf4j
 @RequiredArgsConstructor
+@Validated
 public class ItemRequestController {
     private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
     private final ItemRequestService itemRequestService;
@@ -33,21 +36,27 @@ public class ItemRequestController {
                 RequestMapper.toItemRequest(createItemRequestDto), userId));
     }
 
+    @GetMapping("/{id}")
+    public ItemRequestDto get(@PathVariable Long id,
+                              @RequestHeader(X_SHARER_USER_ID) Long userId) {
+        log.info("Получен запрос на получения информации о запросе на вещи {} от пользователя {} ",
+                id, userId);
+        return RequestMapper.toItemRequestDto(itemRequestService.get(id, userId));
+    }
+
     @GetMapping
     public List<ItemRequestDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId) {
         log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
 
-        return itemRequestService.findAllByUserId(userId).stream()
+        return itemRequestService.findAllByRequesterId(userId).stream()
                 .map(x -> RequestMapper.toItemRequestDto(x))
                 .collect(Collectors.toList());
     }
 
     @GetMapping("/all")
-    public List<ItemRequestDto> findAllByFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                     @RequestParam(required = false, defaultValue = "0")
-                                                     @Valid @Min(0) int from,
-                                                     @RequestParam(required = false, defaultValue = "20")
-                                                     @Valid @Min(1) int size) {
+    public List<ItemRequestDto> findAllWithFromAndSize(@RequestHeader(X_SHARER_USER_ID) Long userId,
+                                                     @RequestParam(required = false) @PositiveOrZero Integer from,
+                                                     @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получения списка запросов на вещи от пользователя {} ", userId);
 
         return itemRequestService.findAllByOffset(userId, from, size).stream()

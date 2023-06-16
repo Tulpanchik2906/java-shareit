@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingCreateDto;
 import ru.practicum.shareit.booking.dto.BookingDto;
@@ -9,6 +10,8 @@ import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.service.BookingService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +22,7 @@ import java.util.stream.Collectors;
 @RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class BookingController {
     private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
     private final BookingService bookingService;
@@ -52,21 +56,25 @@ public class BookingController {
 
     @GetMapping()
     public List<BookingDto> findAll(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                    @RequestParam(required = false, defaultValue = "ALL") String state) {
+                                    @RequestParam(required = false, defaultValue = "ALL") String state,
+                                    @RequestParam(required = false) @PositiveOrZero Integer from,
+                                    @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получение списка бронирований пользователя {} с пармаетром state: {} ",
                 userId, state);
 
-        return bookingService.findAllByBooker(userId, state).stream()
+        return bookingService.findAllByBooker(userId, state, from, size).stream()
                 .map(x -> BookingMapper.toBookingDto(x))
                 .collect(Collectors.toList());
     }
 
     @GetMapping("/owner")
     public List<BookingDto> findAllByOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                           @RequestParam(required = false, defaultValue = "ALL") String state) {
+                                           @RequestParam(required = false, defaultValue = "ALL") String state,
+                                           @RequestParam(required = false) @PositiveOrZero Integer from,
+                                           @RequestParam(required = false) @Positive Integer size) {
         log.info("Получен запрос на получение списка бронирований владельца {} с пармаетром state: {} ",
                 userId, state);
-        return bookingService.findAllByOwner(userId, state).stream()
+        return bookingService.findAllByOwner(userId, state, from, size).stream()
                 .map(x -> BookingMapper.toBookingDto(x))
                 .collect(Collectors.toList());
     }

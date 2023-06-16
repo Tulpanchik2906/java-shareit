@@ -8,6 +8,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,13 +29,16 @@ public class ItemRequest {
     private Long id; // уникальный идентификатор запроса;
 
     @Column(name = "description")
+    @NotNull
     private String description; // текст запроса, содержащий описание требуемой вещи;
 
     @ManyToOne()
     @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @NotNull
     private User requester; // пользователь, создавший запрос;
 
     @Column(name = "create_date")
+    @NotNull
     private LocalDateTime created; // дата и время создания запроса.
 
     @Transient

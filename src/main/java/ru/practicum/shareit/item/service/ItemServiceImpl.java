@@ -2,6 +2,7 @@ package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.enums.BookingStatus;
@@ -11,8 +12,11 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.storage.CommentRepository;
 import ru.practicum.shareit.item.storage.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.request.storage.ItemRequestRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.PageUtil;
 import ru.practicum.shareit.util.exception.NotFoundException;
 import ru.practicum.shareit.util.exception.ValidationException;
 
@@ -35,13 +39,11 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item getInfo(Long itemId, Long userId) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         // Просматривать информацию о вещи может любой пользователь
         Optional<Item> itemOpt = itemStorage.findById(itemId);
 
         if (!itemOpt.isPresent()) {
-            log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
-
             throw new NotFoundException("Вещь с id: " + itemId +
                     " не найдена для пользователя:" + userId + ".");
 
@@ -51,15 +53,39 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> findAllByUser(Long userId) {
-        return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
+    public List<Item> findAllByOwner(Long userId, Integer from, Integer size) {
+        getUser(userId);
+        if (from == null && size == null) {
+            return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
+        } else if (from == null || size == null) {
+            throw new ValidationException("Не хватает параметров для формирования списка");
+        } else {
+            if (PageUtil.isTwoSite(from, size)) {
+                // Получить номер страницы, с которой взять данные
+                int startPage = PageUtil.getStartPage(from, size);
+                // Получить данные с первой страницы
+                List<Item> list = itemStorage.findByOwnerId(userId, PageRequest.of(startPage, size));
+                // Получить данные со второй страницы
+                list.addAll(itemStorage.findByOwnerId(userId, PageRequest.of(startPage + 1, size)));
+                // Отсечь лишние данные сверху удалением из листа до нужного id,
+                // а потом сделать отсечение через функцию limit
+                return setAddParamToItemList(
+                        PageUtil.getPageListForTwoPage(
+                                list, PageUtil.getStartFrom(from, size), size), userId);
+            } else {
+                return setAddParamToItemList(itemStorage
+                        .findByOwnerId(userId, PageRequest.of(PageUtil.getStartPage(from, size), size))
+                        .stream().limit(size)
+                        .collect(Collectors.toList()), userId);
+            }
+        }
     }
 
     @Override
     @Transactional
     public Item create(Long userId, Long requestId, Item item) {
-        item.setOwner(userRepository.getExistUser(userId));
-        item.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+        item.setOwner(getUser(userId));
+        item.setRequest(getItemRequest(requestId));
 
         Item res = itemStorage.save(item);
 
@@ -86,7 +112,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (requestId != null) {
-            oldItem.setRequest(itemRequestRepository.getExistItemRequest(requestId));
+            oldItem.setRequest(getItemRequest(requestId));
         }
 
         Item res = itemStorage.save(oldItem);
@@ -102,19 +128,44 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<Item> searchItems(Long userId, String text) {
-        userRepository.getExistUser(userId);
+    public List<Item> searchItems(Long userId, String text, Integer from, Integer size) {
+        getUser(userId);
         // В случае пустого параметра text вернуть пустой список
         if (text == null || text.isEmpty()) {
             return new ArrayList<>();
         }
-        return setAddParamToItemList(itemStorage.search(text), userId);
+        if (from == null && size == null) {
+            return setAddParamToItemList(itemStorage.search(text), userId);
+        } else if (from == null || size == null) {
+            throw new ValidationException("Не хватает параметров для формирования списка");
+        } else {
+            // Если все нужные данные находятся на 2-х страницах
+            if (PageUtil.isTwoSite(from, size)) {
+                // Получить номер страницы, с которой взять данные
+                int startPage = PageUtil.getStartPage(from, size);
+                // Получить данные с первой страницы
+                List<Item> list = itemStorage.search(text, PageRequest.of(startPage, size));
+                // Получить данные со второй страницы
+                list.addAll(itemStorage.search(text, PageRequest.of(startPage + 1, size)));
+                // Отсечь лишние данные сверху удалением из листа до нужного id,
+                // а потом сделать отсечение через функцию limit
+                return setAddParamToItemList(
+                        PageUtil.getPageListForTwoPage(
+                                list, PageUtil.getStartFrom(from, size), size), userId);
+            } else {
+                return setAddParamToItemList(itemStorage
+                        .search(text, PageRequest.of(PageUtil.getStartPage(from, size), size))
+                        .stream().limit(size)
+                        .collect(Collectors.toList()), userId);
+            }
+        }
     }
 
     @Override
     @Transactional
     public Comment addComment(Long itemId, Long userId, Comment comment) {
-        userRepository.getExistUser(userId);
+        User user = getUser(userId);
+        Item item = getInfo(itemId, userId);
 
         List<Booking> bookings = bookingRepository
                 .findByBookerIdAndItemIdAndStatusAndStartBefore(
@@ -126,20 +177,17 @@ public class ItemServiceImpl implements ItemService {
                             " к вещи с id: " + itemId);
         }
 
-        Item item = getInfo(itemId, userId);
-        comment.setAuthor(userRepository.getExistUser(userId));
+        comment.setAuthor(user);
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
         return commentRepository.save(comment);
     }
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
-        userRepository.getExistUser(userId);
+        getUser(userId);
         List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
 
         if (item.size() == 0) {
-            log.info("Вещь с id: {} не найдена для пользователя: {}.", itemId, userId);
-
             throw new NotFoundException("Вещь с id: " + itemId +
                     " не найдена для пользователя:" + userId + ".");
 
@@ -190,6 +238,22 @@ public class ItemServiceImpl implements ItemService {
                 .map(x -> setComments(setBookingsInfo(x, userId)))
                 .collect(Collectors.toList());
     }
+
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Пользователь с id: " + userId + " не найден."));
+    }
+
+    private ItemRequest getItemRequest(Long requestId) {
+        if (requestId == null) {
+            return null;
+        } else {
+            return itemRequestRepository.findById(requestId).orElseThrow(() ->
+                    new NotFoundException("Не найден запрос с id:" + requestId));
+        }
+    }
+
 }
 
 

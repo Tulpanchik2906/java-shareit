@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.storage.UserRepository;
+import ru.practicum.shareit.util.exception.NotFoundException;
 
 import java.util.List;
 
@@ -17,7 +18,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User get(Long id) {
-        return userStorage.getExistUser(id);
+        return userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException(
+                        "Пользователь с id: " + id + " не найден."));
     }
 
     @Override
@@ -28,7 +31,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User create(User user) {
-        user.setEmail(user.getEmail());
         return userStorage.save(user);
     }
 
