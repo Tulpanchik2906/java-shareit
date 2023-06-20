@@ -10,7 +10,6 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.booking.dto.BookItemRequestDto;
 import ru.practicum.shareit.booking.dto.BookingState;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.exception.ValidationException;
 
 import java.util.Map;
 
@@ -29,15 +28,7 @@ public class BookingClientImp extends BaseClient implements BookingClient {
     }
 
     @Override
-    public ResponseEntity<Object> getBookings(long userId, BookingState state, Integer from, Integer size) throws ValidationException {
-        if (from == null && size == null) {
-            return get("", userId);
-        }
-
-        if (from == null || size == null) {
-            throw new ValidationException("Не хватает параметров для формирования списка");
-        }
-
+    public ResponseEntity<Object> getBookings(long userId, BookingState state, Integer from, Integer size) {
         Map<String, Object> parameters = Map.of(
                 "state", state.name(),
                 "from", from,
@@ -61,23 +52,13 @@ public class BookingClientImp extends BaseClient implements BookingClient {
     public ResponseEntity<Object> approve(Long id, Long userId, boolean approved) {
         Map<String, Object> parameters = Map.of(
                 "approved", approved
-                );
+        );
 
-        return patch("/" + id + "?approved={approved}", userId, parameters, null);
-
+        return patch("/" + id + "?approved={approved}" + id, userId, parameters);
     }
 
     @Override
     public ResponseEntity<Object> findAllByOwner(Long userId, String state, Integer from, Integer size) {
-        if (from == null && size == null) {
-            return get("/owner?state={state}", userId,
-                    Map.of("state", state));
-        }
-
-        if (from == null || size == null) {
-            throw new ValidationException("Не хватает параметров для формирования списка");
-        }
-
         Map<String, Object> parameters = Map.of(
                 "state", state,
                 "from", from,

@@ -8,7 +8,6 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CreateCommentDto;
 import ru.practicum.shareit.item.dto.CreateItemDto;
 import ru.practicum.shareit.item.dto.PatchItemDto;
@@ -32,19 +31,10 @@ public class ItemClientImp extends BaseClient implements ItemClient {
     @Override
     public ResponseEntity<Object> findAllByUserId(
             Long userId, Integer from, Integer size) {
-        if (from == null && size == null) {
-            return get("", userId);
-        }
-
-        if (from == null || size == null) {
-            throw new ValidationException("Не хватает параметров для формирования списка");
-        }
-
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
         );
-
         return get("?from={from}&size={size}", userId, parameters);
     }
 
@@ -56,16 +46,6 @@ public class ItemClientImp extends BaseClient implements ItemClient {
     @Override
     public ResponseEntity<Object> search(
             Long userId, String text, Integer from, Integer size) {
-
-        if (from == null && size == null) {
-            return get("/search?text={text}", userId,
-                    Map.of("text", text));
-        }
-
-        if (from == null || size == null) {
-            throw new ValidationException("Не хватает параметров для формирования списка");
-        }
-
         Map<String, Object> parameters = Map.of(
                 "text", text,
                 "from", from,

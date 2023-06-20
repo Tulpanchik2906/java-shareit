@@ -11,7 +11,6 @@ import ru.practicum.shareit.booking.dto.BookItemRequestDto;
 import ru.practicum.shareit.booking.dto.BookingState;
 
 import javax.validation.Valid;
-import javax.validation.ValidationException;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
@@ -31,7 +30,7 @@ public class BookingController {
                                               @PositiveOrZero @RequestParam(name = "from", defaultValue = "0") Integer from,
                                               @Positive @RequestParam(name = "size", defaultValue = "10") Integer size) {
         BookingState state = BookingState.from(stateParam)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + stateParam));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
         log.info("Get booking with state {}, userId={}, from={}, size={}", stateParam, userId, from, size);
         return bookingClientImp.getBookings(userId, state, from, size);
     }
@@ -67,7 +66,7 @@ public class BookingController {
         log.info("Получен запрос на получение списка бронирований владельца {} с пармаетром state: {} ",
                 userId, state);
         BookingState.from(state)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + state));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + state));
         return bookingClientImp.findAllByOwner(userId, state, from, size);
     }
 }
