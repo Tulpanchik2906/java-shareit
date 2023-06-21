@@ -34,7 +34,8 @@ public class BookingClientImp extends BaseClient implements BookingClient {
         BookingState state = BookingState.from(stateParam)
                 .orElseThrow(() -> new ValidationException("Unknown state: " + stateParam));
         if (from == null && size == null) {
-            return get("?state={state}", userId);
+            return get("?state={state}", userId, Map.of(
+                    "state", state.name()));
         }
 
         if (from == null || size == null) {
