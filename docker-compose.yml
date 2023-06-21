@@ -2,6 +2,9 @@ version: '3.8'
 services:
   gateway:
     build: gateway/
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     container_name:
       shareIt-gateway
     ports:
@@ -13,6 +16,9 @@ services:
 
   server:
     build: server/
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     container_name:
       shareIt-server
     ports:
