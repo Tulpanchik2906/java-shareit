@@ -8,6 +8,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.shareit.client.BaseClient;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.request.dto.CreateItemRequestDto;
 
 import java.util.Map;
@@ -43,10 +44,19 @@ public class ItemRequestClientImp extends BaseClient implements ItemRequestClien
 
     @Override
     public ResponseEntity<Object> findAllWithFromAndSize(Long userId, Integer from, Integer size) {
+
+        if (from == null && size == null) {
+            return get("/all", userId);
+        }
+
+        if (from == null || size == null) {
+            throw new ValidationException("Не хватает параметров для формирования списка");
+        }
+
         Map<String, Object> parameters = Map.of(
                 "from", from,
                 "size", size
         );
-        return get("?from={from}&size={size}", userId, parameters);
+        return get("/all?from={from}&size={size}", userId, parameters);
     }
 }
