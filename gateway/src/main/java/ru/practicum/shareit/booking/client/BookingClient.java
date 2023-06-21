@@ -2,10 +2,9 @@ package ru.practicum.shareit.booking.client;
 
 import org.springframework.http.ResponseEntity;
 import ru.practicum.shareit.booking.dto.BookItemRequestDto;
-import ru.practicum.shareit.booking.dto.BookingState;
 
 public interface BookingClient {
-    public ResponseEntity<Object> getBookings(long userId, BookingState state, Integer from, Integer size);
+    public ResponseEntity<Object> getBookings(long userId, String stateParam, Integer from, Integer size);
 
     public ResponseEntity<Object> bookItem(long userId, BookItemRequestDto requestDto);
 

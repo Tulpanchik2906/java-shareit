@@ -3,19 +3,16 @@ package ru.practicum.shareit.booking.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.client.BookingClientImp;
 import ru.practicum.shareit.booking.dto.BookItemRequestDto;
-import ru.practicum.shareit.booking.dto.BookingState;
 
 import javax.validation.Valid;
-import javax.validation.ValidationException;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 
-@Controller
+@RestController
 @RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
 @Slf4j
@@ -28,12 +25,10 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<Object> getBookings(@RequestHeader(X_SHARER_USER_ID) long userId,
                                               @RequestParam(name = "state", defaultValue = "all") String stateParam,
-                                              @PositiveOrZero @RequestParam(name = "from", defaultValue = "0") Integer from,
-                                              @Positive @RequestParam(name = "size", defaultValue = "10") Integer size) {
-        BookingState state = BookingState.from(stateParam)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + stateParam));
+                                              @PositiveOrZero @RequestParam(name = "from") Integer from,
+                                              @Positive @RequestParam(name = "size") Integer size) {
         log.info("Get booking with state {}, userId={}, from={}, size={}", stateParam, userId, from, size);
-        return bookingClientImp.getBookings(userId, state, from, size);
+        return bookingClientImp.getBookings(userId, stateParam, from, size);
     }
 
     @PostMapping
@@ -66,8 +61,6 @@ public class BookingController {
                                                  @Positive @RequestParam(required = false) Integer size) {
         log.info("Получен запрос на получение списка бронирований владельца {} с пармаетром state: {} ",
                 userId, state);
-        BookingState.from(state)
-                .orElseThrow(() -> new ValidationException("Unknown state: " + state));
         return bookingClientImp.findAllByOwner(userId, state, from, size);
     }
 }

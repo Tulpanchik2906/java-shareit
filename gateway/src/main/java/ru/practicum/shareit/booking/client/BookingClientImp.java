@@ -29,7 +29,10 @@ public class BookingClientImp extends BaseClient implements BookingClient {
     }
 
     @Override
-    public ResponseEntity<Object> getBookings(long userId, BookingState state, Integer from, Integer size) throws ValidationException {
+    public ResponseEntity<Object> getBookings(long userId, String stateParam, Integer from, Integer size)
+            throws ValidationException {
+        BookingState state = BookingState.from(stateParam)
+                .orElseThrow(() -> new javax.validation.ValidationException("Unknown state: " + stateParam));
         if (from == null && size == null) {
             return get("", userId);
         }
@@ -69,6 +72,10 @@ public class BookingClientImp extends BaseClient implements BookingClient {
 
     @Override
     public ResponseEntity<Object> findAllByOwner(Long userId, String state, Integer from, Integer size) {
+
+        BookingState.from(state)
+                .orElseThrow(() -> new javax.validation.ValidationException("Unknown state: " + state));
+
         if (from == null && size == null) {
             return get("/owner?state={state}", userId,
                     Map.of("state", state));
