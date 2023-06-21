@@ -25,8 +25,8 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<Object> getBookings(@RequestHeader(X_SHARER_USER_ID) long userId,
                                               @RequestParam(name = "state", defaultValue = "all") String stateParam,
-                                              @PositiveOrZero @RequestParam(name = "from") Integer from,
-                                              @Positive @RequestParam(name = "size") Integer size) {
+                                              @PositiveOrZero @RequestParam(required = false) Integer from,
+                                              @Positive @RequestParam(required = false) Integer size) {
         log.info("Get booking with state {}, userId={}, from={}, size={}", stateParam, userId, from, size);
         return bookingClientImp.getBookings(userId, stateParam, from, size);
     }
