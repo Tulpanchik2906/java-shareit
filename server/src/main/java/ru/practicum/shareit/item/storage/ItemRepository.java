@@ -23,11 +23,11 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             "and (it.available = true)")
     public List<Item> search(String search, Pageable pageable);
 
-    public List<Item> findByOwnerId(Long userId);
+    public List<Item> findByOwnerIdOrderByIdAsc(Long userId);
 
-    public List<Item> findByOwnerId(Long userId, Pageable pageable);
+    public List<Item> findByOwnerIdOrderByIdAsc(Long userId, Pageable pageable);
 
-    public List<Item> findByIdAndOwnerId(Long itemId, Long userId);
+    public List<Item> findByIdAndOwnerIdOrderByIdAsc(Long itemId, Long userId);
 
     public List<Item> findByRequestId(Long requestId);
 

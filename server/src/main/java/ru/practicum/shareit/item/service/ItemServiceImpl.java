@@ -56,7 +56,7 @@ public class ItemServiceImpl implements ItemService {
     public List<Item> findAllByOwner(Long userId, Integer from, Integer size) {
         getUser(userId);
         if (from == null && size == null) {
-            return setAddParamToItemList(itemStorage.findByOwnerId(userId), userId);
+            return setAddParamToItemList(itemStorage.findByOwnerIdOrderByIdAsc(userId), userId);
         } else if (from == null || size == null) {
             throw new ValidationException("Не хватает параметров для формирования списка");
         } else {
@@ -64,9 +64,9 @@ public class ItemServiceImpl implements ItemService {
                 // Получить номер страницы, с которой взять данные
                 int startPage = PageUtil.getStartPage(from, size);
                 // Получить данные с первой страницы
-                List<Item> list = itemStorage.findByOwnerId(userId, PageRequest.of(startPage, size));
+                List<Item> list = itemStorage.findByOwnerIdOrderByIdAsc(userId, PageRequest.of(startPage, size));
                 // Получить данные со второй страницы
-                list.addAll(itemStorage.findByOwnerId(userId, PageRequest.of(startPage + 1, size)));
+                list.addAll(itemStorage.findByOwnerIdOrderByIdAsc(userId, PageRequest.of(startPage + 1, size)));
                 // Отсечь лишние данные сверху удалением из листа до нужного id,
                 // а потом сделать отсечение через функцию limit
                 return setAddParamToItemList(
@@ -74,7 +74,7 @@ public class ItemServiceImpl implements ItemService {
                                 list, PageUtil.getStartFrom(from, size), size), userId);
             } else {
                 return setAddParamToItemList(itemStorage
-                        .findByOwnerId(userId, PageRequest.of(PageUtil.getStartPage(from, size), size))
+                        .findByOwnerIdOrderByIdAsc(userId, PageRequest.of(PageUtil.getStartPage(from, size), size))
                         .stream().limit(size)
                         .collect(Collectors.toList()), userId);
             }
@@ -185,7 +185,7 @@ public class ItemServiceImpl implements ItemService {
 
     private void validateItemByUserAndById(Long itemId, Long userId) {
         getUser(userId);
-        List<Item> item = itemStorage.findByIdAndOwnerId(itemId, userId);
+        List<Item> item = itemStorage.findByIdAndOwnerIdOrderByIdAsc(itemId, userId);
 
         if (item.size() == 0) {
             throw new NotFoundException("Вещь с id: " + itemId +
